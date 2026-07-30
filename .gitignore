@@ -1,0 +1,27 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*.log
+
+# Environment
+.env
+.env.*
+
+# FAISS / Vector DB
+backend/vectorstore/
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# Next.js
+frontend/.next/
+out/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

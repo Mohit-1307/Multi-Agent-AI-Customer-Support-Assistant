@@ -1,0 +1,1676 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS Variables — design tokens for the whole app. Two layers:
+   primitives (raw color/radius/shadow values) and semantic tokens
+   (what each primitive is actually used FOR). Everything downstream
+   — chat.js, login.js, register.js — reads only the semantic layer,
+   so the palette can change here without touching any component. */
+:root {
+
+  /* Primitives — neutral scale (warm-gray, not blue-gray or beige) */
+  --techmart-gray-50: #fafaf9;
+
+  --techmart-gray-100: #f2f0ec;
+
+  --techmart-gray-200: #e5e2dc;
+
+  --techmart-blue: #3b5ba9;
+
+  --techmart-blue-dark: #2f4880;
+
+  --techmart-blue-light: #e8edf7;
+
+  --techmart-gray-700: #4a463d;
+
+  --techmart-gray-900: #1e1c18;
+
+  --sidebar-width: 280px;
+
+  /* Semantic — text, borders, danger. Consumed directly by chat.js. */
+  --tm-text-strong: #1e1c18;
+
+  --tm-text-muted: #837c70;
+
+  --tm-text-faint: #a89f92;
+
+  --tm-text-slate: #5b5647;
+
+  --tm-text-slate-dim: #6b6558;
+
+  --tm-border-light: #e5e2dc;
+
+  --tm-danger: #c1442c;
+
+  --tm-success: #3f7d58;
+
+  --tm-warning: #a6741c;
+
+  /* Agent icon accent pair — the fill/stroke used inside AGENT_META svgs */
+  --tm-accent-fill: #e8edf7;
+
+  --tm-accent-stroke: #3b5ba9;
+
+  --tm-surface: #ffffff;
+
+  /* Radius, shadow, motion — new, additive, nothing depends on these yet */
+  --tm-radius-sm: 6px;
+
+  --tm-radius-md: 10px;
+
+  --tm-radius-lg: 14px;
+
+  --tm-shadow-sm: 0 1px 2px rgba(30, 28, 24, 0.05), 0 1px 1px rgba(30, 28, 24, 0.03);
+
+  --tm-shadow-md: 0 4px 16px rgba(30, 28, 24, 0.07);
+
+  --tm-shadow-lg: 0 16px 40px rgba(30, 28, 24, 0.12);
+
+  --tm-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+}
+
+/* Base — apply border-box sizing everywhere so padding/border never
+   inflate an element's declared width/height */
+* {
+
+  box-sizing: border-box;
+
+}
+
+html,
+body {
+
+  height: 100%;
+
+  margin: 0;
+
+  padding: 0;
+
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  background-color: var(--techmart-gray-50);
+
+  color: var(--techmart-gray-900);
+
+  -webkit-font-smoothing: antialiased;
+
+}
+
+/* Next.js root mount point — needs full height so the flex chat layout below works */
+#__next {
+
+  height: 100%;
+
+}
+
+/* Typography — consistent heading weight/line-height across the app */
+h1,
+
+h2,
+
+h3,
+
+h4,
+
+h5,
+
+h6 {
+
+  font-weight: 650;
+
+  letter-spacing: -0.01em;
+
+  line-height: 1.25;
+
+}
+
+/* Respect reduced-motion preferences — disable decorative animation
+   for anyone who has asked their OS for it, without touching layout */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+
+  *::before,
+
+  *::after {
+
+    animation-duration: 0.001ms !important;
+
+    animation-iteration-count: 1 !important;
+
+    transition-duration: 0.001ms !important;
+
+  }
+
+}
+
+/* Focus visibility — consistent keyboard focus ring, only shown for
+   keyboard navigation (not mouse clicks) in browsers that support :focus-visible */
+:focus-visible {
+
+  outline: 2px solid var(--techmart-blue);
+
+  outline-offset: 2px;
+
+}
+
+/* Chat Layout — the top-level sidebar + main content flex container */
+.chat-layout {
+
+  display: flex;
+
+  height: 100vh;
+
+  overflow: hidden;
+
+}
+
+.chat-sidebar {
+
+  width: var(--sidebar-width);
+
+  transition: width 0.25s var(--tm-ease);
+
+  flex-shrink: 0;
+
+  background: rgb(255, 255, 255);
+
+  color: rgb(255, 255, 255);
+
+  display: flex;
+
+  flex-direction: column;
+
+  overflow: hidden;
+
+}
+
+.chat-main {
+
+  flex: 1;
+
+  display: flex;
+
+  flex-direction: column;
+
+  overflow: hidden;
+
+  background: #ffffff;
+
+}
+
+/* Message Bubbles — the two chat bubble styles: outgoing (user) and incoming (assistant) */
+.message-user {
+
+  background: var(--techmart-gray-900);
+
+  color: rgb(255, 255, 255);
+
+  border-radius: 18px 18px 4px 18px;
+
+  padding: 10px 14px;
+
+  width: fit-content;
+
+  max-width: 100%;
+
+  word-break: break-word;
+
+  overflow-wrap: break-word;
+
+  line-height: 1.6;
+
+  margin-left: auto;
+
+  font-size: 15px;
+
+  border: 0px solid #ffffff;
+
+  box-shadow: var(--tm-shadow-sm);
+
+}
+
+.message-assistant {
+
+  background: #ffffff;
+
+  color: var(--tm-text-strong);
+
+  border: 1px solid var(--tm-border-light);
+
+  border-radius: 18px 18px 18px 4px;
+
+  padding: 12px 16px;
+
+  width: fit-content;
+
+  min-width: 44px;
+
+  max-width: 100%;
+
+  overflow-wrap: break-word;
+
+  line-height: 1.6;
+
+  box-shadow: var(--tm-shadow-sm);
+
+}
+
+/* Avatar — the single, consistent identity mark used for the assistant
+   in the typing indicator and in each assistant message. Solid ink fill,
+   no gradient — this is the one signature mark reused everywhere the
+   brand appears (sidebar logo, this avatar, the auth-page mark). */
+.avatar-mark {
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  background: var(--tm-text-strong);
+
+  color: var(--techmart-gray-50);
+
+  font-weight: 650;
+
+}
+
+/* Typing Indicator — the three bouncing dots shown while the assistant is "typing" */
+@keyframes bounce {
+
+  0%,
+
+  80%,
+
+  100% {
+
+    transform: scale(0.6);
+
+    opacity: 0.4;
+
+  }
+
+  40% {
+
+    transform: scale(1);
+
+    opacity: 1;
+
+  }
+
+}
+
+.typing-dot {
+
+  width: 6px;
+
+  height: 6px;
+
+  border-radius: 50%;
+
+  background: var(--tm-text-faint);
+
+  animation: bounce 1.4s infinite ease-in-out;
+
+  display: inline-block;
+
+  margin: 0 2px;
+
+}
+
+/* Stagger each dot's animation so they bounce in sequence rather than all at once */
+.typing-dot:nth-child(1) {
+
+  animation-delay: -0.32s;
+
+}
+
+.typing-dot:nth-child(2) {
+
+  animation-delay: -0.16s;
+
+}
+
+.typing-dot:nth-child(3) {
+
+  animation-delay: 0s;
+
+}
+
+/* Agent Badge — small pill label showing which agent handled a message */
+.agent-badge {
+
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 4px;
+
+  font-size: 11px;
+
+  font-weight: 500;
+
+  padding: 2px 8px;
+
+  border-radius: 20px;
+
+  letter-spacing: 0.3px;
+
+}
+
+/* One muted color variant per agent domain — same hue family, low
+   saturation, so badges read as a coherent set rather than a rainbow */
+.agent-billing {
+
+  background: #f3ead9;
+
+  color: #8a6416;
+
+}
+
+.agent-technical {
+
+  background: var(--techmart-blue-light);
+
+  color: var(--techmart-blue-dark);
+
+}
+
+.agent-product {
+
+  background: #e2ede4;
+
+  color: #2f6b42;
+
+}
+
+.agent-complaint {
+
+  background: #f4e2df;
+
+  color: #a3402c;
+
+}
+
+.agent-faq {
+
+  background: #ebe4f0;
+
+  color: #6b4c85;
+
+}
+
+.agent-general {
+
+  background: var(--techmart-gray-100);
+
+  color: var(--tm-text-slate);
+
+}
+
+/* Sentiment Badge — color-codes the detected sentiment of a message */
+.sentiment-positive {
+
+  color: var(--tm-success);
+
+}
+
+.sentiment-neutral {
+
+  color: var(--tm-text-slate);
+
+}
+
+.sentiment-negative {
+
+  color: var(--tm-warning);
+
+}
+
+.sentiment-frustrated {
+
+  color: var(--tm-danger);
+
+}
+
+/* Sidebar Items — the clickable session list entries + nav rows in the sidebar */
+.sidebar-item {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 10px 12px;
+
+  border-radius: var(--tm-radius-sm);
+
+  cursor: pointer;
+
+  transition: background 0.15s var(--tm-ease), transform 0.15s var(--tm-ease);
+
+  font-size: 14px;
+
+  color: var(--tm-text-slate);
+
+}
+
+.sidebar-item:hover {
+
+  background: var(--techmart-gray-100);
+
+  color: var(--tm-text-strong);
+
+}
+
+.sidebar-item.active {
+
+  background: var(--techmart-blue-light);
+
+  color: var(--techmart-blue-dark);
+
+  font-weight: 600;
+
+}
+
+/* Icon Button — shared transparent hover-button used throughout the
+   sidebar (archive/delete/restore controls, menu toggles). Replaces
+   what used to be a dozen near-identical onMouseEnter/onMouseLeave
+   handlers with one class plus two color modifiers. */
+.icon-btn {
+
+  background: none;
+
+  border: none;
+
+  cursor: pointer;
+
+  color: var(--tm-text-muted);
+
+  padding: 4px 6px;
+
+  border-radius: var(--tm-radius-sm);
+
+  transition: color 0.15s var(--tm-ease), background 0.15s var(--tm-ease);
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+}
+
+.icon-btn:hover {
+
+  color: var(--tm-text-strong);
+
+  background: var(--techmart-gray-100);
+
+}
+
+.icon-btn-danger:hover {
+
+  color: var(--tm-danger);
+
+  background: rgba(193, 68, 44, 0.08);
+
+}
+
+.icon-btn-success:hover {
+
+  color: var(--tm-success);
+
+  background: rgba(63, 125, 88, 0.08);
+
+}
+
+/* Menu Item — rows inside the sidebar's account popover (Settings,
+   Language, and Help sub-items; Log out; Reset History; Delete Account) */
+.menu-item {
+
+  width: 100%;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 8px 14px 8px 36px;
+
+  background: none;
+
+  border: none;
+
+  color: var(--tm-text-muted);
+
+  font-size: 12px;
+
+  cursor: pointer;
+
+  text-align: left;
+
+  transition: color 0.15s var(--tm-ease);
+
+}
+
+.menu-item:hover {
+
+  color: var(--tm-text-strong);
+
+}
+
+.menu-item-danger {
+
+  color: var(--tm-danger);
+
+  opacity: 0.75;
+
+  padding-left: 14px;
+
+}
+
+.menu-item-danger:hover {
+
+  opacity: 1;
+
+  background: rgba(193, 68, 44, 0.08);
+
+}
+
+/* Menu Section — the expandable Settings/Language/Help header buttons */
+.menu-section-btn {
+
+  width: 100%;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 10px 14px;
+
+  background: none;
+
+  border: none;
+
+  border-bottom: 1px solid rgba(30, 28, 24, 0.05);
+
+  color: var(--tm-text-slate-dim);
+
+  font-size: 13px;
+
+  cursor: pointer;
+
+  text-align: left;
+
+  transition: background 0.15s var(--tm-ease), color 0.15s var(--tm-ease);
+
+}
+
+.menu-section-btn:hover {
+
+  background: var(--techmart-gray-100);
+
+  color: var(--tm-text-strong);
+
+}
+
+.menu-section-btn.active {
+
+  background: var(--techmart-blue-light);
+
+  color: var(--techmart-blue-dark);
+
+}
+
+/* Input — the main chat message textarea */
+.chat-input {
+
+  border: 1.5px solid var(--tm-border-light);
+
+  border-radius: var(--tm-radius-md);
+
+  padding: 12px 16px;
+
+  font-size: 15px;
+
+  outline: none;
+
+  resize: none;
+
+  line-height: 1.5;
+
+  background: white;
+
+  transition:
+
+    border-color 0.15s var(--tm-ease),
+
+    box-shadow 0.15s var(--tm-ease);
+
+  width: 100%;
+
+}
+
+.chat-input:focus {
+
+  border-color: var(--techmart-blue);
+
+  box-shadow: 0 0 0 3px var(--techmart-blue-light);
+
+}
+
+/* Search Input — sidebar chat search. Previously styled entirely via
+   inline style + manual onFocus/onBlur DOM mutation; consolidated here
+   so it gets a real :focus state like every other input in the app. */
+.search-input {
+
+  width: 100%;
+
+  border-radius: var(--tm-radius-sm);
+
+  border: 1px solid transparent;
+
+  background: var(--techmart-gray-100);
+
+  outline: none;
+
+  transition: border-color 0.15s var(--tm-ease), background 0.15s var(--tm-ease);
+
+}
+
+.search-input:focus {
+
+  border-color: var(--techmart-blue);
+
+  background: #ffffff;
+
+}
+
+/* Buttons */
+.btn-primary {
+
+  background: var(--techmart-blue);
+
+  color: white;
+
+  border: none;
+
+  border-radius: var(--tm-radius-md);
+
+  padding: 10px 20px;
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+
+    background 0.15s var(--tm-ease),
+
+    transform 0.1s var(--tm-ease);
+
+}
+
+.btn-primary:hover {
+
+  background: var(--techmart-blue-dark);
+
+}
+
+.btn-primary:active {
+
+  transform: scale(0.98);
+
+}
+
+.btn-primary:disabled {
+
+  background: var(--tm-text-faint);
+
+  cursor: not-allowed;
+
+}
+
+.btn-send {
+
+  background: var(--techmart-blue);
+
+  color: white;
+
+  border: none;
+
+  border-radius: var(--tm-radius-md);
+
+  width: 44px;
+
+  height: 44px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  cursor: pointer;
+
+  flex-shrink: 0;
+
+  transition:
+
+    background 0.15s var(--tm-ease),
+
+    transform 0.1s var(--tm-ease);
+
+}
+
+/* NOTE (preserved as-is): this rule applies to the *enabled* send button,
+    but sets cursor: not-allowed, which reads as backwards — an enabled
+    button showing a "can't click me" cursor. Left unchanged since fixing
+    it would be a behavior/style change, just flagging it here. */
+.btn-send:enabled {
+
+  background: var(--techmart-blue);
+
+  cursor: allowed;
+
+}
+
+.btn-send:disabled {
+
+  background: var(--techmart-gray-200);
+
+  color: var(--tm-text-faint);
+
+  cursor: not-allowed;
+
+}
+
+.btn-send:hover:enabled {
+
+  background: var(--techmart-blue-dark);
+
+}
+
+.btn-send:active {
+
+  transform: scale(0.95);
+
+}
+
+/* Card — generic bordered container used for panels/widgets */
+.card {
+
+  background: white;
+
+  border-radius: var(--tm-radius-lg);
+
+  border: 1px solid var(--tm-border-light);
+
+  box-shadow: var(--tm-shadow-sm);
+
+}
+
+/* Star Rating — the clickable stars used in the feedback widget */
+.star-btn {
+
+  cursor: pointer;
+
+  padding: 0 4px;
+
+  transition: transform 0.1s var(--tm-ease);
+
+  line-height: 1;
+
+  background: none;
+
+  border: none;
+
+  color: var(--tm-text-faint);
+
+}
+
+.star-btn.filled {
+
+  color: #d4a72c;
+
+}
+
+.star-btn:hover {
+
+  transform: scale(1.15);
+
+}
+
+/* Auth Forms — shared input styling for the login/register pages */
+.auth-input {
+
+  border: 1.5px solid var(--tm-border-light);
+
+  border-radius: var(--tm-radius-md);
+
+  padding: 12px 14px;
+
+  font-size: 15px;
+
+  outline: none;
+
+  width: 100%;
+
+  transition:
+
+    border-color 0.15s var(--tm-ease),
+
+    box-shadow 0.15s var(--tm-ease);
+
+  background: white;
+
+  color: var(--tm-text-strong);
+
+}
+
+.auth-input:focus {
+
+  border-color: var(--techmart-blue);
+
+  box-shadow: 0 0 0 3px var(--techmart-blue-light);
+
+}
+
+.auth-input::placeholder {
+
+  color: var(--tm-text-faint);
+
+}
+
+/* Animations — small entrance effects reused across the UI */
+@keyframes fadeInUp {
+
+  from {
+
+    opacity: 0;
+
+    transform: translateY(6px);
+
+  }
+
+  to {
+
+    opacity: 1;
+
+    transform: translateY(0);
+
+  }
+
+}
+
+/* Applied to each new chat message as it appears */
+.message-enter {
+
+  animation: fadeInUp 0.2s var(--tm-ease);
+
+}
+
+@keyframes fadeIn {
+
+  from {
+
+    opacity: 0;
+
+  }
+
+  to {
+
+    opacity: 1;
+
+  }
+
+}
+
+/* Generic fade-in helper, used for error banners and similar transient UI */
+.fade-in {
+
+  animation: fadeIn 0.2s var(--tm-ease);
+
+}
+
+/* Chart Containers — fixed-height wrapper so charts render at a predictable size */
+.chart-container {
+
+  position: relative;
+
+  height: 200px;
+
+  width: 100%;
+
+}
+
+/* Responsive — collapse the sidebar into an off-canvas drawer on small screens */
+@media (max-width: 768px) {
+
+  :root {
+
+    --sidebar-width: 0px;
+
+  }
+
+  .chat-sidebar {
+
+    position: fixed;
+
+    left: -280px;
+
+    top: 0;
+
+    bottom: 0;
+
+    width: 280px;
+
+    z-index: 50;
+
+    transition: left 0.25s var(--tm-ease);
+
+  }
+
+  /* Sidebar slides into view when the mobile menu is toggled open */
+  .chat-sidebar.open {
+
+    left: 0;
+
+    box-shadow: var(--tm-shadow-lg);
+
+  }
+
+  .message-user,
+
+  .message-assistant {
+
+    max-width: 90%;
+
+  }
+
+}
+
+/* Voice Button Pulse Ring — animated ring shown while voice input is listening */
+@keyframes voicePulse {
+
+  0% {
+
+    box-shadow: 0 0 0 0 rgba(193, 68, 44, 0.45);
+
+  }
+
+  70% {
+
+    box-shadow: 0 0 0 8px rgba(193, 68, 44, 0);
+
+  }
+
+  100% {
+
+    box-shadow: 0 0 0 0 rgba(193, 68, 44, 0);
+
+  }
+
+}
+
+.voice-listening {
+
+  animation: voicePulse 1.4s infinite;
+
+}
+
+/* Sidebar Collapse — fully hides the sidebar (used by a manual collapse toggle,
+   separate from the responsive/mobile breakpoint above) */
+.sidebar-collapsed .chat-sidebar {
+
+  width: 0;
+
+  overflow: hidden;
+
+  transition: width 0.25s var(--tm-ease);
+
+}
+
+/* Show delete/archive buttons on hover — the sole mechanism for this now;
+   a duplicate manual JS opacity mutation was removed from chat.js since
+   this !important rule already covers it on its own. */
+.sidebar-item:hover .delete-btn {
+
+  opacity: 1 !important;
+
+}
+
+/* Quick-question buttons — light mode hover */
+.quick-question-btn {
+
+  transition:
+
+    background 0.18s var(--tm-ease),
+
+    border-color 0.18s var(--tm-ease),
+
+    transform 0.18s var(--tm-ease),
+
+    box-shadow 0.18s var(--tm-ease);
+
+}
+
+.quick-question-btn:hover {
+
+  background: var(--techmart-blue-light) !important;
+
+  border-color: var(--techmart-blue) !important;
+
+  transform: translateY(-1px);
+
+  box-shadow: var(--tm-shadow-sm);
+
+}
+
+/* Theme switch transition — apply globally so toggling light/dark mode
+   fades smoothly across every major surface instead of flashing instantly */
+body,
+
+.chat-layout,
+
+.chat-sidebar,
+
+.chat-main,
+
+header,
+
+.card,
+
+.message-assistant,
+
+.message-user,
+
+.chat-input,
+
+.btn-primary,
+
+.btn-send {
+
+  transition:
+
+    background-color 0.25s var(--tm-ease),
+
+    color 0.25s var(--tm-ease),
+
+    border-color 0.25s var(--tm-ease),
+
+    box-shadow 0.25s var(--tm-ease);
+
+}
+
+/* ---------------------------------------------------------------------------- */
+/* DARK THEME                                                   */
+/* ---------------------------------------------------------------------------- */
+/* Root dark palette — CSS variables scoped to .dark-mode, overriding
+   the light-mode defaults defined in :root above */
+.dark-mode {
+
+  --dm-bg-base: #14161b;
+
+  --dm-bg-elevated: #1b1e24;
+
+  --dm-bg-card: #1f2229;
+
+  --dm-bg-hover: #262a32;
+
+  --dm-bg-input: #1a1d23;
+
+  --dm-border: #2c2f38;
+
+  --dm-border-subtle: #24272e;
+
+  --dm-text-primary: #e9e9ec;
+
+  --dm-text-secondary: #9b9ea6;
+
+  --dm-text-muted: #6c6f78;
+
+  --dm-accent: #6a8ee0;
+
+  --dm-accent-hover: #5a7cd0;
+
+  --dm-accent-soft: rgba(106, 142, 224, 0.14);
+
+  --dm-danger: #e2685a;
+
+  --dm-danger-soft: rgba(226, 104, 90, 0.14);
+
+  /* Re-point the light-mode semantic tokens at dark-appropriate values.
+     Custom properties inherit down the DOM tree, so every inline
+     color: var(--tm-text-strong) etc. already scattered through the
+     Sidebar/header markup picks these up automatically — no need to
+     hunt down each usage, and no !important war with inline styles
+     (which a plain "override color on every descendant" rule loses,
+     since an inline style always wins over a non-!important class). */
+  --tm-text-strong: var(--dm-text-primary);
+
+  --tm-text-muted: var(--dm-text-secondary);
+
+  --tm-text-faint: var(--dm-text-muted);
+
+  --tm-text-slate: var(--dm-text-secondary);
+
+  --tm-text-slate-dim: var(--dm-text-secondary);
+
+  --tm-border-light: var(--dm-border-subtle);
+
+  --tm-danger: var(--dm-danger);
+
+  --tm-accent-fill: var(--dm-accent-soft);
+
+  --tm-accent-stroke: var(--dm-accent);
+
+  --tm-surface: var(--dm-bg-card);
+
+  /* Same fix, one layer down: chat.js also references the raw
+     primitives directly in some spots (search input, session rows,
+     analytics charts, quick-question buttons) via Tailwind arbitrary
+     values like bg-[var(--techmart-gray-100)]. Re-point those too,
+     so nothing bypasses the dark theme by going around the semantic
+     --tm-* layer above. */
+  --techmart-gray-50: var(--dm-bg-base);
+
+  --techmart-gray-100: var(--dm-bg-hover);
+
+  --techmart-gray-200: var(--dm-border);
+
+  --techmart-blue: var(--dm-accent);
+
+  --techmart-blue-dark: var(--dm-accent-hover);
+
+  --techmart-blue-light: var(--dm-accent-soft);
+
+  background: var(--dm-bg-base);
+
+  color: var(--dm-text-primary);
+
+  transition:
+
+    background 0.25s var(--tm-ease),
+
+    color 0.25s var(--tm-ease);
+
+  animation: dmFadeIn 0.2s var(--tm-ease);
+
+}
+
+/* Layout */
+.dark-mode .chat-layout {
+
+  background: var(--dm-bg-base);
+
+}
+
+.dark-mode .chat-main {
+
+  background: var(--dm-bg-base);
+
+}
+
+.dark-mode .chat-sidebar {
+
+  background: var(--dm-bg-elevated) !important;
+
+  border-right: 1px solid var(--dm-border-subtle) !important;
+
+}
+
+/* Header */
+.dark-mode header,
+
+.dark-mode .topbar {
+
+  background: var(--dm-bg-elevated) !important;
+
+  color: var(--dm-text-primary) !important;
+
+  border-bottom: 1px solid var(--dm-border-subtle) !important;
+
+  backdrop-filter: blur(8px);
+
+}
+
+/* Welcome Screen */
+.dark-mode h1,
+
+.dark-mode h2,
+
+.dark-mode h3,
+
+.dark-mode h4 {
+
+  color: var(--dm-text-primary) !important;
+
+}
+
+.dark-mode p {
+
+  color: var(--dm-text-secondary) !important;
+
+}
+
+/* Assistant Messages */
+.dark-mode .message-assistant {
+
+  background: var(--dm-bg-card);
+
+  color: var(--dm-text-primary);
+
+  border: 1px solid var(--dm-border-subtle);
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+
+  transition:
+
+    background 0.25s var(--tm-ease),
+
+    border-color 0.25s var(--tm-ease);
+
+}
+
+/* User Messages */
+.dark-mode .message-user {
+
+  background: var(--dm-accent);
+
+  color: #ffffff;
+
+  box-shadow: 0 2px 10px rgba(106, 142, 224, 0.25);
+
+}
+
+/* Avatar mark */
+.dark-mode .avatar-mark {
+
+  background: var(--dm-text-primary);
+
+  color: var(--dm-bg-base);
+
+}
+
+/* Cards */
+.dark-mode .card {
+
+  background: var(--dm-bg-card);
+
+  border: 1px solid var(--dm-border-subtle);
+
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+
+  transition:
+
+    background 0.25s var(--tm-ease),
+
+    border-color 0.25s var(--tm-ease),
+
+    box-shadow 0.25s var(--tm-ease);
+
+}
+
+.dark-mode .card:hover {
+
+  border-color: var(--dm-border);
+
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+
+}
+
+/* Input Area */
+.dark-mode .input-area {
+
+  background: var(--dm-bg-elevated);
+
+  border-top: none;
+
+}
+
+/* Inputs */
+.dark-mode .chat-input,
+
+.dark-mode .search-input,
+
+.dark-mode input,
+
+.dark-mode textarea,
+
+.dark-mode select {
+
+  background: var(--dm-bg-input) !important;
+
+  color: var(--dm-text-primary) !important;
+
+  border: 1px solid var(--dm-border) !important;
+
+  transition:
+
+    border-color 0.2s var(--tm-ease),
+
+    box-shadow 0.2s var(--tm-ease),
+
+    background 0.2s var(--tm-ease);
+
+}
+
+.dark-mode .chat-input:focus,
+
+.dark-mode .search-input:focus,
+
+.dark-mode input:focus,
+
+.dark-mode textarea:focus {
+
+  border-color: var(--dm-accent) !important;
+
+  box-shadow: 0 0 0 3px var(--dm-accent-soft) !important;
+
+  outline: none;
+
+}
+
+.dark-mode .chat-input::placeholder,
+
+.dark-mode textarea::placeholder,
+
+.dark-mode input::placeholder {
+
+  color: var(--dm-text-muted) !important;
+
+}
+
+/* Auth Inputs */
+.dark-mode .auth-input {
+
+  background: var(--dm-bg-input);
+
+  color: var(--dm-text-primary);
+
+  border: 1px solid var(--dm-border);
+
+  transition:
+
+    border-color 0.2s var(--tm-ease),
+
+    box-shadow 0.2s var(--tm-ease);
+
+}
+
+.dark-mode .auth-input:focus {
+
+  border-color: var(--dm-accent);
+
+  box-shadow: 0 0 0 3px var(--dm-accent-soft);
+
+}
+
+.dark-mode .quick-question-btn:hover {
+
+  background: var(--dm-accent-soft) !important;
+
+  border-color: var(--dm-accent) !important;
+
+  transform: translateY(-1px);
+
+  box-shadow: 0 4px 12px rgba(106, 142, 224, 0.15);
+
+}
+
+/* Buttons */
+.dark-mode button {
+
+  color: var(--dm-text-primary);
+
+  transition:
+
+    background 0.18s var(--tm-ease),
+
+    color 0.18s var(--tm-ease),
+
+    transform 0.12s var(--tm-ease),
+
+    box-shadow 0.18s var(--tm-ease);
+
+}
+
+.dark-mode button:hover {
+
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dark-mode button:active {
+
+  transform: scale(0.97);
+
+}
+
+.dark-mode .icon-btn:hover {
+
+  background: rgba(255, 255, 255, 0.06);
+
+  color: var(--dm-text-primary);
+
+}
+
+.dark-mode .icon-btn-danger:hover {
+
+  color: var(--dm-danger);
+
+  background: var(--dm-danger-soft);
+
+}
+
+.dark-mode .icon-btn-success:hover {
+
+  color: #7fc79a;
+
+  background: rgba(127, 199, 154, 0.1);
+
+}
+
+.dark-mode .menu-section-btn:hover {
+
+  background: rgba(255, 255, 255, 0.05);
+
+}
+
+.dark-mode .menu-section-btn.active {
+
+  background: var(--dm-accent-soft);
+
+  color: var(--dm-accent) !important;
+
+}
+
+/* Primary button */
+.dark-mode .btn-primary {
+
+  background: var(--dm-accent);
+
+  color: #ffffff;
+
+  box-shadow: 0 2px 8px rgba(106, 142, 224, 0.25);
+
+}
+
+.dark-mode .btn-primary:hover {
+
+  background: var(--dm-accent-hover);
+
+  box-shadow: 0 4px 14px rgba(106, 142, 224, 0.35);
+
+  transform: translateY(-1px);
+
+}
+
+.dark-mode .btn-primary:active {
+
+  transform: translateY(0) scale(0.98);
+
+}
+
+.dark-mode .btn-primary:disabled {
+
+  background: var(--dm-bg-hover);
+
+  color: var(--dm-text-muted);
+
+  box-shadow: none;
+
+}
+
+/* Send Button */
+.dark-mode .btn-send:disabled {
+
+  background: var(--dm-bg-hover);
+
+  color: var(--dm-text-muted);
+
+  cursor: not-allowed;
+
+  opacity: 0.7;
+
+  box-shadow: none;
+
+}
+
+.dark-mode .btn-send:not(:disabled) {
+
+  background: var(--dm-accent);
+
+  color: white;
+
+  cursor: pointer;
+
+  box-shadow: 0 2px 10px rgba(106, 142, 224, 0.3);
+
+}
+
+.dark-mode .btn-send:not(:disabled):hover {
+
+  background: var(--dm-accent-hover);
+
+  box-shadow: 0 4px 16px rgba(106, 142, 224, 0.4);
+
+  transform: translateY(-1px) scale(1.03);
+
+}
+
+.dark-mode .btn-send:not(:disabled):active {
+
+  transform: translateY(0) scale(0.96);
+
+}
+
+/* White/Slate Background Overrides — remap Tailwind's light-mode utility
+   classes to dark-mode-appropriate backgrounds wherever they're used */
+.dark-mode .bg-white {
+
+  background: var(--dm-bg-elevated) !important;
+
+}
+
+.dark-mode .bg-slate-50,
+
+.dark-mode .bg-slate-100 {
+
+  background: var(--dm-bg-card) !important;
+
+}
+
+/* Text Overrides — remap Tailwind's slate text utility classes to dark-mode text colors */
+.dark-mode .text-slate-900,
+
+.dark-mode .text-slate-800,
+
+.dark-mode .text-slate-700 {
+
+  color: var(--dm-text-primary) !important;
+
+}
+
+.dark-mode .text-slate-600,
+
+.dark-mode .text-slate-500,
+
+.dark-mode .text-slate-400 {
+
+  color: var(--dm-text-secondary) !important;
+
+}
+
+/* Border Overrides */
+.dark-mode .border-slate-100,
+
+.dark-mode .border-slate-300 {
+
+  border-color: var(--dm-border-subtle) !important;
+
+}
+
+.dark-mode .border-slate-200 {
+
+  border-color: var(--dm-border) !important;
+
+}
+
+/* Scrollbar — styled scrollbar for WebKit browsers (Chrome, Safari, Edge) in dark mode */
+.dark-mode ::-webkit-scrollbar {
+
+  width: 6px;
+
+  height: 6px;
+
+}
+
+.dark-mode ::-webkit-scrollbar-track {
+
+  background: transparent;
+
+}
+
+.dark-mode ::-webkit-scrollbar-thumb {
+
+  background: var(--dm-border);
+
+  border-radius: 10px;
+
+  transition: background 0.2s var(--tm-ease);
+
+}
+
+.dark-mode ::-webkit-scrollbar-thumb:hover {
+
+  background: var(--dm-text-muted);
+
+}
+
+/* Subtle fade-in when dark mode activates */
+@keyframes dmFadeIn {
+
+  from {
+
+    opacity: 0.85;
+
+  }
+
+  to {
+
+    opacity: 1;
+
+  }
+
+}
