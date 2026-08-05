@@ -145,15 +145,11 @@ export default function RegisterPage() {
 
         <title>Create Account — TechMart AI Support</title>
 
-        {/* Same substitution as chat.js/login.js: Claude's real interface
-            font ("Anthropic Sans") is proprietary and not redistributable,
-            so Inter stands in — same variable weight range, same clean
-            UI-grotesque character. */}
         <link rel = "preconnect" href = "https://fonts.googleapis.com" />
 
-        <link rel = "preconnect" href = "https://fonts.gstatic.com" crossOrigin = "anonymous" />
+        <link rel = "preconnect" href = "https://fonts.gstatic.com" crossOrigin = "true" />
 
-        <link href = "https://fonts.googleapis.com/css2?family=Inter:wght@300..800&display=swap" rel = "stylesheet" />
+        <link href = "https://fonts.googleapis.com/css2?family=Lora:wght@400;500&display=swap" rel = "stylesheet" />
 
       </Head>
 
@@ -161,31 +157,43 @@ export default function RegisterPage() {
 
         body {
 
-          font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
         }
 
       `}</style>
 
-      <div className = "min-h-screen flex items-center justify-center bg-[var(--techmart-gray-50)] px-4 py-8">
+      <div className = "min-h-screen flex items-center justify-center bg-white px-4 py-8">
 
         <div className = "w-full max-w-md">
 
           <div className = "text-center mb-8">
 
-            <div className = "avatar-mark inline-flex w-14 h-14 rounded-2xl text-2xl mb-4 shadow-sm">
+            <div className = "inline-flex items-center justify-center w-14 h-14 rounded-2xl text-2xl mb-4 shadow-sm bg-[var(--techmart-blue)] text-white font-semibold">
 
               T
 
             </div>
 
-            <h1 className = "text-2xl font-semibold text-[var(--tm-text-strong)] tracking-tight">
+            <h1
+
+              className = "text-3xl font-normal text-[var(--tm-text-strong)]"
+
+              style = {{ fontFamily: "'Lora', Georgia, 'Times New Roman', serif", letterSpacing: "0.02em" }}
+
+            >
 
               Create Your Account
 
             </h1>
 
-            <p className = "text-[var(--tm-text-muted)] text-sm mt-1">
+            <p
+
+              className = "text-[var(--tm-text-muted)] text-sm mt-1"
+
+              style = {{ fontFamily: "'Lora', Georgia, 'Times New Roman', serif" }}
+
+            >
 
               Get started with TechMart AI Support
 
@@ -257,43 +265,43 @@ export default function RegisterPage() {
 
               <div>
 
-                <div>
+                <label className = "block text-sm font-medium text-[var(--tm-text-slate)] mb-1.5">
 
-                  <label className = "block text-sm font-medium text-[var(--tm-text-slate)] mb-1.5">
+                  Phone Number
 
-                    Phone Number
+                  <span className = "text-[var(--tm-text-faint)] font-normal ml-1">
 
-                    <span className = "text-[var(--tm-text-faint)] font-normal ml-1">
+                    (optional — for WhatsApp alerts)
 
-                      (optional — for WhatsApp alerts)
+                  </span>
 
-                    </span>
+                </label>
 
-                  </label>
+                <input
 
-                  <input
+                  type = "tel"
 
-                    type = "tel"
+                  name = "phone"
 
-                    name = "phone"
+                  value = {form.phone}
 
-                    value = {form.phone}
+                  onChange = {handleChange}
 
-                    onChange = {handleChange}
+                  placeholder = "+91 98765 43210"
 
-                    placeholder = "+91 98765 43210"
+                  className = "auth-input"
 
-                    className = "auth-input"
+                />
 
-                  />
+                <p className = "text-[var(--tm-text-faint)] text-xs mt-1">
 
-                  <p className = "text-[var(--tm-text-faint)] text-xs mt-1">
+                  Include country code e.g. +91 for India, +1 for US
 
-                    Include country code e.g. +91 for India, +1 for US
+                </p>
 
-                  </p>
+              </div>
 
-                </div>
+              <div>
 
                 <label className = "block text-sm font-medium text-[var(--tm-text-slate)] mb-1.5">
 
@@ -319,7 +327,7 @@ export default function RegisterPage() {
 
                     style = {{ paddingRight: "44px" }}
 
-                    autoComplete = "current-password"
+                    autoComplete = "new-password"
 
                     required
 
@@ -351,27 +359,28 @@ export default function RegisterPage() {
 
                     {showPassword ? (
 
-                      <svg width = "18" height = "18" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
+                      <svg width = "18" height = "18" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
 
-                        <path d = "M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                        <path d = "M2.5 12C4.8 7.2 8.2 4.8 12 4.8s7.2 2.4 9.5 7.2c-2.3 4.8-5.7 7.2-9.5 7.2S4.8 16.8 2.5 12Z"/>
 
-                        <path d = "M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                        <circle cx = "12" cy = "12" r = "3.2"/>
 
-                        <line x1 ="1" y1 = "1" x2 = "23" y2 = "23"/>
+                        <line x1 = "3.5" y1 = "20.5" x2 = "20.5" y2 = "3.5"/>
 
                       </svg>
 
                     ) : (
 
-                      <svg width = "18" height = "18" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
+                      <svg width = "18" height = "18" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
 
-                        <path d = "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <path d = "M2.5 12C4.8 7.2 8.2 4.8 12 4.8s7.2 2.4 9.5 7.2c-2.3 4.8-5.7 7.2-9.5 7.2S4.8 16.8 2.5 12Z"/>
 
-                        <circle cx = "12" cy = "12" r = "3"/>
+                        <circle cx = "12" cy = "12" r = "3.2"/>
 
                       </svg>
 
                     )}
+
 
                   </button>
 
@@ -431,6 +440,8 @@ export default function RegisterPage() {
 
                     style = {{ paddingRight: "44px" }}
 
+                    autoComplete = "new-password"
+
                     required
 
                   />
@@ -461,23 +472,23 @@ export default function RegisterPage() {
 
                     {showConfirm ? (
 
-                      <svg width = "18" height = "18" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
+                      <svg width = "18" height = "18" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
 
-                        <path d = "M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                        <path d = "M2.5 12C4.8 7.2 8.2 4.8 12 4.8s7.2 2.4 9.5 7.2c-2.3 4.8-5.7 7.2-9.5 7.2S4.8 16.8 2.5 12Z"/>
 
-                        <path d = "M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                        <circle cx = "12" cy = "12" r = "3.2"/>
 
-                        <line x1 = "1" y1 = "1" x2 = "23" y2 = "23"/>
+                        <line x1 = "3.5" y1 = "20.5" x2 = "20.5" y2 = "3.5"/>
 
                       </svg>
 
                     ) : (
 
-                      <svg width = "18" height = "18" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
+                      <svg width = "18" height = "18" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
 
-                        <path d = "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <path d = "M2.5 12C4.8 7.2 8.2 4.8 12 4.8s7.2 2.4 9.5 7.2c-2.3 4.8-5.7 7.2-9.5 7.2S4.8 16.8 2.5 12Z"/>
 
-                        <circle cx = "12" cy = "12" r = "3"/>
+                        <circle cx = "12" cy = "12" r = "3.2"/>
 
                       </svg>
 
@@ -592,6 +603,7 @@ export default function RegisterPage() {
                   Sign in
                   
                 </Link>
+                
               </p>
 
             </div>

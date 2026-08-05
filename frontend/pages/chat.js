@@ -254,21 +254,18 @@ const AGENT_META = {
 };
 
 // Sentiment glyphs, tied to the same tokens as the .sentiment-* text
-// classes in globals.css (previously these used literal color keywords
-// like "green"/"blue"/"red"/"orange", inconsistent with the CSS side).
+// classes in globals.css. Professional status-indicator style (check /
+// dash / trend-down / alert-triangle) rather than the earlier
+// smiley-face metaphor — reads like a support-tool status badge.
 const SENTIMENT_ICON = {
 
   positive: (
 
-    <svg width = "18" height = "18" viewBox = "0 0 24 24">
+    <svg width = "14" height = "14" viewBox = "0 0 24 24" fill = "none" stroke = "var(--tm-success)" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
 
-      <circle cx = "12" cy = "12" r = "9" fill = "none" stroke = "var(--tm-success)" strokeWidth = "1.5" />
+      <circle cx = "12" cy = "12" r = "9" />
 
-      <circle cx = "9" cy = "10" r = "1" fill = "var(--tm-success)" />
-
-      <circle cx = "15" cy = "10" r = "1" fill = "var(--tm-success)" />
-
-      <path d = "M8 14a4 4 0 0 0 8 0" stroke = "var(--tm-success)" strokeWidth = "1.5" fill = "none" strokeLinecap = "round" />
+      <path d = "M8 12.5l2.5 2.5L16 9.5" />
 
     </svg>
 
@@ -276,15 +273,11 @@ const SENTIMENT_ICON = {
 
   neutral: (
 
-    <svg width = "18" height = "18" viewBox = "0 0 24 24">
+    <svg width = "14" height = "14" viewBox = "0 0 24 24" fill = "none" stroke = "var(--tm-text-slate)" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
 
-      <circle cx = "12" cy = "12" r = "9" fill = "none" stroke = "var(--tm-text-slate)" strokeWidth = "1.5" />
+      <circle cx = "12" cy = "12" r = "9" />
 
-      <circle cx = "9" cy = "10" r = "1" fill = "var(--tm-text-slate)" />
-
-      <circle cx = "15" cy = "10" r = "1" fill = "var(--tm-text-slate)" />
-
-      <path d = "M8 15h8" stroke = "var(--tm-text-slate)" strokeWidth = "1.5" strokeLinecap = "round" />
+      <line x1 = "8" y1 = "12" x2 = "16" y2 = "12" />
 
     </svg>
 
@@ -292,15 +285,11 @@ const SENTIMENT_ICON = {
 
   negative: (
 
-    <svg width = "18" height = "18" viewBox = "0 0 24 24">
+    <svg width = "14" height = "14" viewBox = "0 0 24 24" fill = "none" stroke = "var(--tm-warning)" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
 
-      <circle cx = "12" cy = "12" r = "9" fill = "none" stroke = "var(--tm-warning)" strokeWidth = "1.5" />
+      <circle cx = "12" cy = "12" r = "9" />
 
-      <circle cx = "9" cy = "10" r = "1" fill = "var(--tm-warning)" />
-
-      <circle cx = "15" cy = "10" r = "1" fill = "var(--tm-warning)" />
-
-      <path d = "M8 16a4 4 0 0 1 8 0" stroke = "var(--tm-warning)" strokeWidth = "1.5" fill = "none" strokeLinecap = "round" />
+      <path d = "M8 10l4 4 4-4" />
 
     </svg>
 
@@ -308,13 +297,13 @@ const SENTIMENT_ICON = {
 
   frustrated: (
 
-    <svg width = "18" height = "18" viewBox = "0 0 24 24">
+    <svg width = "14" height = "14" viewBox = "0 0 24 24" fill = "none" stroke = "var(--tm-danger)" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
 
-      <circle cx = "12" cy = "12" r = "9" fill = "none" stroke = "var(--tm-danger)" strokeWidth = "1.5" />
+      <path d = "M12 3.5l9.5 16.5H2.5Z" />
 
-      <path d = "M7.5 9.5l3 1M16.5 9.5l-3 1" stroke = "var(--tm-danger)" strokeWidth = "1.5" strokeLinecap = "round" />
+      <line x1 = "12" y1 = "10" x2 = "12" y2 = "14" />
 
-      <path d = "M8 16a4 4 0 0 1 8 0" stroke = "var(--tm-danger)" strokeWidth = "1.5" fill = "none" strokeLinecap = "round" />
+      <circle cx = "12" cy = "17" r = "0.6" fill = "var(--tm-danger)" stroke = "none" />
 
     </svg>
 
@@ -464,9 +453,11 @@ function MessageBubble({ message }) {
 
           {message.sentiment && message.sentiment !== "neutral" && (
 
-            <span className = {`text-xs flex items-center gap-1 sentiment-${message.sentiment}`}>
+            <span className = {`sentiment-badge sentiment-${message.sentiment}`}>
 
-              {SENTIMENT_ICON[message.sentiment]} {message.sentiment}
+              {SENTIMENT_ICON[message.sentiment]}
+
+              <span style = {{ textTransform: "capitalize" }}>{message.sentiment}</span>
 
             </span>
 
@@ -1135,9 +1126,15 @@ function Sidebar({
 
           icon = {
 
-            <svg width = "15" height = "15" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
+            <svg width = "16" height = "16" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
 
-              <path d = "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              <path d = "M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" />
+
+              <circle cx = "8.5" cy = "11" r = "0.75" fill = "currentColor" stroke = "none" />
+
+              <circle cx = "12" cy = "11" r = "0.75" fill = "currentColor" stroke = "none" />
+
+              <circle cx = "15.5" cy = "11" r = "0.75" fill = "currentColor" stroke = "none" />
 
             </svg>
 
@@ -1159,15 +1156,13 @@ function Sidebar({
 
           icon = {
 
-            <svg width = "16" height = "16" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
+            <svg width = "16" height = "16" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
 
-              <rect x = "3" y = "3" width = "8" height = "8" rx = "2" />
+              <path d = "M4 19h16" />
 
-              <rect x = "13" y = "3" width = "8" height = "5" rx = "2" />
+              <path d = "M4 15l5-5 4 4 7-8" />
 
-              <rect x = "13" y = "10" width = "8" height = "11" rx = "2" />
-
-              <rect x = "3" y = "13" width = "8" height = "8" rx = "2" />
+              <path d = "M16 6h4v4" />
 
             </svg>
 
@@ -1195,13 +1190,13 @@ function Sidebar({
 
           icon = {
 
-            <svg width = "15" height = "15" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
+            <svg width = "16" height = "16" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
 
-              <polyline points = "21 8 21 21 3 21 3 8" />
+              <rect x = "2" y = "4" width = "20" height = "5" rx = "1.5" />
 
-              <rect x = "1" y = "3" width = "22" height = "5" />
+              <path d = "M4 9v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9" />
 
-              <line x1 = "10" y1 = "12" x2 = "14" y2 = "12" />
+              <line x1 = "10" y1 = "13" x2 = "14" y2 = "13" />
 
             </svg>
 
@@ -1229,11 +1224,15 @@ function Sidebar({
 
           icon = {
 
-            <svg width = "15" height = "15" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
+            <svg width = "16" height = "16" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
 
-              <polyline points = "3 6 5 6 21 6" />
+              <path d = "M4 7h16" />
 
-              <path d = "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              <path d = "M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2m2 0v13a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7" />
+
+              <line x1 = "10" y1 = "11" x2 = "10" y2 = "17" />
+
+              <line x1 = "14" y1 = "11" x2 = "14" y2 = "17" />
 
             </svg>
 
@@ -1335,7 +1334,17 @@ function Sidebar({
 
               className = "search-input"
 
-              style = {{ paddingLeft: 28, color: "var(--tm-text-strong)" }}
+              style = {{
+
+                paddingLeft: 28,
+
+                color: "var(--tm-text-strong)",
+
+                fontFamily: "'Lora', Georgia, 'Times New Roman', serif",
+
+                fontWeight: 450,
+
+              }}
 
             />
 
@@ -1475,9 +1484,11 @@ function Sidebar({
 
                   <svg width = "11" height = "11" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
 
-                    <polyline points = "3 6 5 6 21 6" />
+                    <path d = "M5 7h14l-1 13.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 20.5Z" />
 
-                    <path d = "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    <path d = "M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+
+                    <line x1 = "3" y1 = "7" x2 = "21" y2 = "7" />
 
                     <line x1 = "10" y1 = "11" x2 = "10" y2 = "17" />
 
@@ -1604,9 +1615,11 @@ function Sidebar({
 
                   <svg width = "11" height = "11" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
 
-                    <polyline points = "3 6 5 6 21 6" />
+                    <path d = "M5 7h14l-1 13.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 20.5Z" />
 
-                    <path d = "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    <path d = "M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+
+                    <line x1 = "3" y1 = "7" x2 = "21" y2 = "7" />
 
                     <line x1 = "10" y1 = "11" x2 = "10" y2 = "17" />
 
@@ -1801,9 +1814,11 @@ function Sidebar({
 
                   <svg width = "13" height = "13" viewBox = "0 0 24 24" fill = "none" stroke = "var(--tm-danger)" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round" style = {{ flexShrink: 0 }}>
 
-                    <polyline points = "3 6 5 6 21 6" />
+                    <path d = "M5 7h14l-1 13.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 20.5Z" />
 
-                    <path d = "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    <path d = "M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+
+                    <line x1 = "3" y1 = "7" x2 = "21" y2 = "7" />
 
                   </svg>
 
@@ -2191,9 +2206,11 @@ function Sidebar({
 
                 <svg width = "12" height = "12" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
 
-                  <polyline points = "3 6 5 6 21 6" />
+                  <path d = "M5 7h14l-1 13.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 20.5Z" />
 
-                  <path d = "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  <path d = "M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+
+                  <line x1 = "3" y1 = "7" x2 = "21" y2 = "7" />
 
                   <line x1 = "10" y1 = "11" x2 = "10" y2 = "17" />
 
@@ -2366,9 +2383,15 @@ function AnalyticsPanel({ onClose }) {
 
     conversations: (
 
-      <svg width = "18" height = "18" viewBox = "0 0 24 24" fill = "none" stroke = "var(--techmart-blue)" strokeWidth = "1.6" strokeLinecap = "round" strokeLinejoin = "round">
+      <svg width = "18" height = "18" viewBox = "0 0 24 24" fill = "none" stroke = "var(--techmart-blue)" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
 
-        <path d = "M12 3C7 3 3 6.8 3 11.5c0 2.4 1 4.5 2.7 6L4.5 21l4.4-1.3c1 .3 2 .4 3.1.4 5 0 9-3.8 9-8.6S17 3 12 3z" />
+        <path d = "M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" />
+
+        <circle cx = "8.5" cy = "11" r = "0.75" fill = "var(--techmart-blue)" stroke = "none" />
+
+        <circle cx = "12" cy = "11" r = "0.75" fill = "var(--techmart-blue)" stroke = "none" />
+
+        <circle cx = "15.5" cy = "11" r = "0.75" fill = "var(--techmart-blue)" stroke = "none" />
 
       </svg>
 
@@ -2378,9 +2401,11 @@ function AnalyticsPanel({ onClose }) {
 
       <svg width = "18" height = "18" viewBox = "0 0 24 24" fill = "none" stroke = "var(--techmart-blue)" strokeWidth = "1.6" strokeLinecap = "round" strokeLinejoin = "round">
 
-        <path d = "M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z" />
+        <rect x = "3" y = "4" width = "18" height = "14" rx = "2" />
 
-        <path d = "M7 10l5 4 5-4" />
+        <line x1 = "6.5" y1 = "8.5" x2 = "17.5" y2 = "8.5" />
+
+        <line x1 = "6.5" y1 = "12" x2 = "14" y2 = "12" />
 
       </svg>
 
@@ -2426,71 +2451,116 @@ function AnalyticsPanel({ onClose }) {
   // Renders the 30-day trend as a real line/area chart instead of a
   // row of height-adjusted divs. Only reads d.date/d.count — same
   // fields the old bar version used.
+  //
+  // Visual upgrade pass: horizontal gridlines at 0/50%/100% of the max
+  // value, a labeled peak line, and larger invisible hit-areas around
+  // each point so hover/tooltip triggers over a comfortable radius
+  // instead of only the 3px visible dot. Still reads only d.date/d.count
+  // — no new data fields required from the API.
+  // Formats an ISO "YYYY-MM-DD" date string as "DD/MM/YYYY".
+  const formatDateDMY = (isoDate) => {
+
+    const [year, month, day] = isoDate.split("-");
+
+    return `${day}/${month}/${year}`;
+
+  };
+
   const renderDailyTrend = (dailyData) => {
 
     const w = 480;
 
-    const h = 96;
+    const h = 120;
+
+    const topPad = 18;
+
+    const bottomPad = 4;
 
     const max = Math.max(...dailyData.map((d) => d.count), 1);
 
-    const stepX = dailyData.length > 1 ? w / (dailyData.length - 1) : 0;
+    const barGap = 6;
 
-    const coords = dailyData.map((d, i) => ({
+    const barWidth = dailyData.length > 0 ? Math.max((w - barGap * (dailyData.length - 1)) / dailyData.length, 2) : 0;
 
-      x: dailyData.length > 1 ? i * stepX : w / 2,
+    const heightFor = (count) => (count / max) * (h - topPad - bottomPad);
 
-      y: h - (d.count / max) * (h - 14) - 6,
+    const bars = dailyData.map((d, i) => {
 
-      ...d,
+      const barHeight = heightFor(d.count);
 
-    }));
+      return {
 
-    const linePath = coords.map((c, i) => `${i === 0 ? "M" : "L"} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`).join(" ");
+        x: i * (barWidth + barGap),
 
-    const areaPath = `${linePath} L ${coords[coords.length - 1].x.toFixed(1)} ${h} L 0 ${h} Z`;
+        y: h - bottomPad - barHeight,
+
+        height: barHeight,
+
+        ...d,
+
+      };
+
+    });
 
     return (
 
       <>
 
-        <svg viewBox = {`0 0 ${w} ${h}`} preserveAspectRatio = "none" style = {{ width: "100%", height: 130, display: "block", overflow: "visible" }}>
+        <svg viewBox = {`0 0 ${w} ${h}`} preserveAspectRatio = "none" style = {{ width: "100%", height: 150, display: "block", overflow: "visible" }}>
 
-          <defs>
+          {bars.map((b) => (
 
-            <linearGradient id = "dailyTrendFill" x1 = "0" y1 = "0" x2 = "0" y2 = "1">
+            <g key = {b.date} className = "trend-point">
 
-              <stop offset = "0%" stopColor = "var(--techmart-blue)" stopOpacity = "0.16" />
+              <rect
 
-              <stop offset = "100%" stopColor = "var(--techmart-blue)" stopOpacity = "0" />
+                x = {b.x}
 
-            </linearGradient>
+                y = {b.y}
 
-          </defs>
+                width = {barWidth}
 
-          <path d = {areaPath} fill = "url(#dailyTrendFill)" stroke = "none" />
+                height = {b.height}
 
-          <path d = {linePath} fill = "none" stroke = "var(--techmart-blue)" strokeWidth = "2" strokeLinejoin = "round" strokeLinecap = "round" />
+                rx = "2"
 
-          {coords.map((c) => (
+                fill = "var(--tm-success)"
 
-            <circle key = {c.date} cx = {c.x} cy = {c.y} r = "3" fill = "var(--techmart-blue)" stroke = "#ffffff" strokeWidth = "1.5">
+              />
 
-              <title>{`${c.date}: ${c.count} conversation${c.count === 1 ? "" : "s"}`}</title>
+              <text
 
-            </circle>
+                x = {b.x + barWidth / 2}
+
+                y = {b.y - 5}
+
+                textAnchor = "middle"
+
+                fontSize = "9"
+
+                fill = "var(--tm-text-faint)"
+
+              >
+
+                {b.count}
+
+              </text>
+
+              <title>{`${formatDateDMY(b.date)}: ${b.count} conversation${b.count === 1 ? "" : "s"}`}</title>
+
+            </g>
 
           ))}
 
         </svg>
 
-        <div style = {{ display: "flex", marginTop: 2 }}>
+        <div style = {{ display: "flex", marginTop: 2, gap: 6 }}>
 
           {dailyData.map((d) => (
 
-            <div key = {d.date} style = {{ flex: 1, textAlign: "center", fontSize: 10, color: "var(--tm-text-faint)" }}>
+            <div key = {d.date} style = {{ flex: 1, textAlign: "center", fontSize: 9, color: "var(--tm-text-faint)" }}>
 
-              {d.date.slice(5)}
+              {formatDateDMY(d.date)}
 
             </div>
 
@@ -2549,7 +2619,7 @@ function AnalyticsPanel({ onClose }) {
 
       const dash = pct * circumference;
 
-      const arc = { ...s, dash, offset: cumulative * circumference };
+      const arc = { ...s, pct, dash, offset: cumulative * circumference };
 
       cumulative += pct;
 
@@ -2557,9 +2627,30 @@ function AnalyticsPanel({ onClose }) {
 
     });
 
+    // Midpoint angle (in the original, un-rotated coordinate space) of
+    // each arc segment, used to place its percentage label just outside
+    // the ring.
+    const labelPos = (a) => {
+
+      const midFraction = (a.offset + a.dash / 2) / circumference;
+
+      const angle = midFraction * 2 * Math.PI - Math.PI / 2;
+
+      const labelRadius = radius + 13;
+
+      return {
+
+        x: 50 + labelRadius * Math.cos(angle),
+
+        y: 50 + labelRadius * Math.sin(angle),
+
+      };
+
+    };
+
     return (
 
-      <svg width = "112" height = "112" viewBox = "0 0 100 100">
+      <svg width = "140" height = "140" viewBox = "-15 -15 130 130">
 
         <g style = {{ transform: "rotate(-90deg)", transformOrigin: "50px 50px" }}>
 
@@ -2593,6 +2684,66 @@ function AnalyticsPanel({ onClose }) {
 
         </g>
 
+        {arcs.filter((a) => a.pct > 0).map((a) => {
+
+          const pos = labelPos(a);
+
+          const label = `${Math.round(a.pct * 100)}%`;
+
+          const chipWidth = label.length * 5.2 + 6;
+
+          return (
+
+            <g key = {`${a.sentiment}-label`}>
+
+              <rect
+
+                x = {pos.x - chipWidth / 2}
+
+                y = {pos.y - 7}
+
+                width = {chipWidth}
+
+                height = "14"
+
+                rx = "4"
+
+                fill = "#ffffff"
+
+                stroke = {SENTIMENT_COLOR[a.sentiment] || "var(--tm-text-faint)"}
+
+                strokeWidth = "1"
+
+              />
+
+              <text
+
+                x = {pos.x}
+
+                y = {pos.y}
+
+                textAnchor = "middle"
+
+                dominantBaseline = "middle"
+
+                fontSize = "8"
+
+                fontWeight = "650"
+
+                fill = {SENTIMENT_COLOR[a.sentiment] || "var(--tm-text-faint)"}
+
+              >
+
+                {label}
+
+              </text>
+
+            </g>
+
+          );
+
+        })}
+
         <text x = "50" y = "47" textAnchor = "middle" fontSize = "17" fontWeight = "650" fill = "var(--tm-text-strong)">
 
           {total}
@@ -2611,6 +2762,66 @@ function AnalyticsPanel({ onClose }) {
 
   };
 
+  // Week-over-week % change — only computable for Conversations, since
+  // it's the only metric with a daily breakdown (daily_conversations).
+  // Messages/Rating/Response are single 30-day totals with no daily
+  // series in the API response, so a WoW figure for those would be
+  // fabricated, not derived — deliberately left out.
+  const weekOverWeek = (dailyData) => {
+
+    if (!dailyData || dailyData.length < 14) return null;
+
+    const sorted = [...dailyData].sort((a, b) => a.date.localeCompare(b.date));
+
+    const lastWeek = sorted.slice(-7).reduce((sum, d) => sum + d.count, 0);
+
+    const priorWeek = sorted.slice(-14, -7).reduce((sum, d) => sum + d.count, 0);
+
+    if (priorWeek === 0) return null;
+
+    return Math.round(((lastWeek - priorWeek) / priorWeek) * 100);
+
+  };
+
+  // Five-star rating display with exact partial fill — a 3.5 rating
+  // fills star 4 exactly halfway via clip-path, not "round to nearest
+  // half star", so 3.4 and 3.6 render visibly differently from 3.5.
+  const renderStarRating = (rating) => {
+
+    const stars = [1, 2, 3, 4, 5].map((n) => {
+
+      const fillPct = Math.max(0, Math.min(1, rating - (n - 1))) * 100;
+
+      return (
+
+        <span key = {n} style = {{ position: "relative", display: "inline-block", width: 15, height: 15 }}>
+
+          <svg width = "15" height = "15" viewBox = "0 0 24 24" style = {{ position: "absolute", top: 0, left: 0 }}>
+
+            <path d = "M12 2.5l2.9 6 6.6.7-4.9 4.5 1.3 6.5-6-3.3-6 3.3 1.3-6.5-4.9-4.5 6.6-.7z" fill = "none" stroke = "var(--tm-text-faint)" strokeWidth = "1.3" />
+
+          </svg>
+
+          <span style = {{ position: "absolute", top: 0, left: 0, width: `${fillPct}%`, height: "100%", overflow: "hidden" }}>
+
+            <svg width = "15" height = "15" viewBox = "0 0 24 24">
+
+              <path d = "M12 2.5l2.9 6 6.6.7-4.9 4.5 1.3 6.5-6-3.3-6 3.3 1.3-6.5-4.9-4.5 6.6-.7z" fill = "var(--tm-warning)" stroke = "var(--tm-warning)" strokeWidth = "1.3" />
+
+            </svg>
+
+          </span>
+
+        </span>
+
+      );
+
+    });
+
+    return <span style = {{ display: "inline-flex", gap: 1 }}>{stars}</span>;
+
+  };
+
   return (
 
     <div className = "flex-1 overflow-auto p-6 fade-in">
@@ -2623,13 +2834,11 @@ function AnalyticsPanel({ onClose }) {
 
             <svg width = "20" height = "20" viewBox = "0 0 24 24" fill = "none" stroke = "var(--techmart-blue)" strokeWidth = "1.6" strokeLinecap = "round" strokeLinejoin = "round">
 
-              <rect x = "3" y = "3" width = "8" height = "8" rx = "2" />
+              <path d = "M4 19h16" />
 
-              <rect x = "13" y = "3" width = "8" height = "5" rx = "2" />
+              <path d = "M4 15l5-5 4 4 7-8" />
 
-              <rect x = "13" y = "10" width = "8" height = "11" rx = "2" />
-
-              <rect x = "3" y = "13" width = "8" height = "8" rx = "2" />
+              <path d = "M16 6h4v4" />
 
             </svg>
 
@@ -2637,11 +2846,89 @@ function AnalyticsPanel({ onClose }) {
 
           </h2>
 
-          <button className = "btn-primary text-sm px-4 py-2" onClick = {onClose}>
+          <div className = "flex items-center gap-3">
 
-            ❮ Back to Chat
+            <button
 
-          </button>
+              className = "btn-primary text-sm px-4 py-2 flex items-center gap-2"
+
+              onClick = {() => {
+
+                if (!data) return;
+
+                const rows = [
+
+                  ["Metric", "Value"],
+
+                  ["Total Conversations", data.total_conversations],
+
+                  ["Total Messages", data.total_messages],
+
+                  ["Average Rating", data.average_rating ? data.average_rating.toFixed(2) : "N/A"],
+
+                  ["Avg Response Time (ms)", Math.round(data.avg_response_time_ms)],
+
+                  [],
+
+                  ["Date", "Conversations"],
+
+                  ...data.daily_conversations.map((d) => [d.date, d.count]),
+
+                  [],
+
+                  ["Agent", "Count", "Percentage"],
+
+                  ...data.agent_distribution.map((a) => [a.agent, a.count, `${a.percentage}%`]),
+
+                  [],
+
+                  ["Sentiment", "Count"],
+
+                  ...data.sentiment_distribution.map((s) => [s.sentiment, s.count]),
+
+                ];
+
+                const csv = rows.map((r) => r.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+
+                const blob = new Blob([csv], { type: "text/csv" });
+
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement("a");
+
+                a.href = url;
+
+                a.download = `techmart-analytics-${new Date().toISOString().slice(0, 10)}.csv`;
+
+                a.click();
+
+                URL.revokeObjectURL(url);
+
+              }}
+
+            >
+
+              <svg width = "15" height = "15" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
+
+                <path d = "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+
+                <polyline points = "7 10 12 15 17 10" />
+
+                <line x1 = "12" y1 = "15" x2 = "12" y2 = "3" />
+
+              </svg>
+
+              Export CSV
+
+            </button>
+
+            <button className = "btn-primary text-sm px-4 py-2" onClick = {onClose}>
+
+              ❮ Back to Chat
+
+            </button>
+
+          </div>
 
         </div>
 
@@ -2691,13 +2978,13 @@ function AnalyticsPanel({ onClose }) {
 
               {[
 
-                { label: "Conversations", value: data.total_conversations, icon: KPI_ICONS.conversations, spark: true },
+                { label: "Conversations", value: data.total_conversations, icon: KPI_ICONS.conversations, spark: true, wow: weekOverWeek(data.daily_conversations) },
 
-                { label: "Messages", value: data.total_messages, icon: KPI_ICONS.messages, spark: false },
+                { label: "Messages", value: data.total_messages, icon: KPI_ICONS.messages, spark: false, wow: null },
 
-                { label: "Avg Rating", value: data.average_rating ? data.average_rating.toFixed(1) : "N/A", icon: KPI_ICONS.rating, spark: false },
+                { label: "Avg Rating", value: data.average_rating ? data.average_rating.toFixed(1) : "N/A", icon: KPI_ICONS.rating, spark: false, wow: null, isRating: true },
 
-                { label: "Avg Response", value: `${Math.round(data.avg_response_time_ms)}ms`, icon: KPI_ICONS.response, spark: false },
+                { label: "Avg Response", value: `${Math.round(data.avg_response_time_ms)}ms`, icon: KPI_ICONS.response, spark: false, wow: null },
 
               ].map((kpi) => (
 
@@ -2713,7 +3000,49 @@ function AnalyticsPanel({ onClose }) {
 
                   <div className = "flex items-end justify-between">
 
-                    <div className = "text-2xl font-semibold text-[var(--tm-text-strong)] tabular-nums">{kpi.value}</div>
+                    <div className = "flex items-center gap-2">
+
+                      {kpi.isRating && data.average_rating ? (
+
+                        <div className = "flex items-center gap-1.5">
+
+                          {renderStarRating(data.average_rating)}
+
+                          <span className = "text-sm font-semibold text-[var(--tm-text-strong)] tabular-nums">{kpi.value}</span>
+
+                        </div>
+
+                      ) : (
+
+                        <div className = "text-2xl font-semibold text-[var(--tm-text-strong)] tabular-nums">{kpi.value}</div>
+
+                      )}
+
+                      {kpi.wow !== null && (
+
+                        <span
+
+                          className = "text-xs font-medium px-1.5 py-0.5 rounded-full"
+
+                          style = {{
+
+                            color: kpi.wow >= 0 ? "var(--tm-success)" : "var(--tm-danger)",
+
+                            background: kpi.wow >= 0 ? "rgba(22, 163, 74, 0.1)" : "rgba(220, 38, 38, 0.1)",
+
+                          }}
+
+                          title = "vs. the previous 7 days"
+
+                        >
+
+                          {kpi.wow >= 0 ? "+" : ""}{kpi.wow}%
+
+                        </span>
+
+                      )}
+
+                    </div>
 
                     {kpi.spark && data.daily_conversations.length > 1 && renderSparkline(data.daily_conversations)}
 
@@ -2753,13 +3082,13 @@ function AnalyticsPanel({ onClose }) {
 
                       <div className = "w-20 text-xs text-right text-[var(--tm-text-slate)] capitalize flex-shrink-0">{a.agent}</div>
 
-                      <div className = "flex-1 bg-[var(--techmart-gray-100)] rounded-full h-2">
+                      <div className = "flex-1 bg-[var(--techmart-gray-100)] rounded-full h-2" title = {`${a.agent}: ${a.count} conversation${a.count === 1 ? "" : "s"} (${a.percentage}%)`}>
 
-                        <div className = "bg-[var(--techmart-blue)] h-2 rounded-full transition-all" style = {{ width: `${a.percentage}%` }} />
+                        <div className = "h-2 rounded-full transition-all" style = {{ width: `${a.percentage}%`, background: "#8b5cf6" }} />
 
                       </div>
 
-                      <div className = "text-xs text-[var(--tm-text-muted)] w-14 text-right tabular-nums flex-shrink-0">
+                      <div className = "text-xs text-[var(--tm-text-muted)] w-20 text-right tabular-nums flex-shrink-0 whitespace-nowrap">
 
                         {a.count} · {a.percentage}%
 
@@ -2834,9 +3163,9 @@ function AnalyticsPanel({ onClose }) {
 
                           <div className = "w-24 text-xs text-right text-[var(--tm-text-slate)] capitalize flex-shrink-0">{item.intent}</div>
 
-                          <div className = "flex-1 bg-[var(--techmart-gray-100)] rounded-full h-2">
+                          <div className = "flex-1 bg-[var(--techmart-gray-100)] rounded-full h-2" title = {`${item.intent}: ${item.count} conversation${item.count === 1 ? "" : "s"} (${pct}%)`}>
 
-                            <div className = "bg-[var(--tm-warning)] h-2 rounded-full transition-all" style = {{ width: `${pct}%` }} />
+                            <div className = "bg-[var(--tm-danger)] h-2 rounded-full transition-all" style = {{ width: `${pct}%` }} />
 
                           </div>
 
@@ -2898,7 +3227,7 @@ export default function ChatPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
 
-  const [fontSize, setFontSize] = useState(14);
+  const [fontSize, setFontSize] = useState(15);
 
   const [selectedLanguage, setSelectedLanguage] = useState("English");
 
@@ -3536,6 +3865,8 @@ export default function ChatPage() {
 
         <link href = "https://fonts.googleapis.com/css2?family=Inter:wght@300..800&display=swap" rel = "stylesheet" />
 
+        <link href = "https://fonts.googleapis.com/css2?family=Lora:wght@400;500&display=swap" rel = "stylesheet" />
+
       </Head>
 
       {/* Scoped to this page only — styled-jsx removes these rules from
@@ -3663,33 +3994,11 @@ export default function ChatPage() {
 
             >
 
-              <svg width = "16" height = "16" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
+              <svg width = "16" height = "16" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
 
-                {sidebarCollapsed ? (
+                <rect x = "3" y = "4" width = "18" height = "16" rx = "2" />
 
-                  <>
-
-                    <line x1 = "3" y1 = "12" x2 = "21" y2 = "12" />
-
-                    <line x1 = "3" y1 = "6" x2 = "21" y2 = "6" />
-
-                    <line x1 = "3" y1 = "18" x2 = "21" y2 = "18" />
-
-                  </>
-
-                ) : (
-
-                  <>
-
-                    <rect x = "3" y = "3" width = "7" height = "18" rx = "1" />
-
-                    <line x1 = "14" y1 = "9" x2 = "21" y2 = "9" />
-
-                    <line x1 = "14" y1 = "15" x2 = "21" y2 = "15" />
-
-                  </>
-
-                )}
+                <line x1 = "9" y1 = "4" x2 = "9" y2 = "20" />
 
               </svg>
 
@@ -3697,7 +4006,13 @@ export default function ChatPage() {
 
             <div className = "flex-1 min-w-0">
 
-              <div className = "font-semibold text-[var(--tm-text-strong)] truncate">
+              <div
+
+                className = "font-semibold text-[var(--tm-text-strong)] truncate"
+
+                style = {{ fontFamily: "'Lora', Georgia, 'Times New Roman', serif" }}
+
+              >
 
                 {showAnalytics
 
@@ -3715,21 +4030,19 @@ export default function ChatPage() {
 
               <button
 
-                className = "flex items-center gap-1.5 text-sm text-[var(--tm-text-slate)] hover:text-[var(--tm-warning)] px-3 py-1.5 rounded-lg hover:bg-[var(--tm-warning)]/10 border border-[var(--tm-border-light)] hover:border-[var(--tm-warning)]/30 transition-all"
+                className = "icon-tooltip-btn tooltip-rate"
 
                 onClick = {() => setShowFeedback(true)}
 
-                title = "Rate this conversation"
+                data-tooltip = "Rate this conversation"
 
               >
 
-                <svg width = "15" height = "15" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
+                <svg width = "16" height = "16" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
 
                   <polygon points = "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
 
                 </svg>
-
-                <span>Rate</span>
 
               </button>
 
@@ -3739,7 +4052,7 @@ export default function ChatPage() {
 
               <button
 
-                className = "flex items-center gap-1.5 text-sm text-[var(--tm-text-slate)] hover:text-[var(--techmart-blue)] px-3 py-1.5 rounded-lg hover:bg-[var(--techmart-blue-light)] border border-[var(--tm-border-light)] hover:border-[var(--techmart-blue)]/40 transition-all"
+                className = "icon-tooltip-btn tooltip-export"
 
                 onClick = {() => {
 
@@ -3767,11 +4080,11 @@ export default function ChatPage() {
 
                 }}
 
-                title = "Export conversation"
+                data-tooltip = "Export conversation"
 
               >
 
-                <svg width = "15" height = "15" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
+                <svg width = "16" height = "16" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
 
                   <path d = "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
 
@@ -3780,8 +4093,6 @@ export default function ChatPage() {
                   <line x1 = "12" y1 = "15" x2 = "12" y2 = "3" />
 
                 </svg>
-
-                <span>Export</span>
 
               </button>
 
@@ -3792,7 +4103,7 @@ export default function ChatPage() {
 
               <button
 
-                className = "flex items-center gap-1.5 text-sm text-[var(--tm-text-slate)] hover:text-[var(--tm-danger)] px-3 py-1.5 rounded-lg hover:bg-[var(--tm-danger)]/8 border border-[var(--tm-border-light)] hover:border-[var(--tm-danger)]/30 transition-all"
+                className = "icon-tooltip-btn tooltip-escalate"
 
                 onClick = {async () => {
 
@@ -3846,11 +4157,11 @@ export default function ChatPage() {
 
                 }}
 
-                title = "Escalate to human agent"
+                data-tooltip = "Escalate to human agent"
 
               >
 
-                <svg width = "14" height = "14" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
+                <svg width = "16" height = "16" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
 
                   <path d = "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
 
@@ -3862,8 +4173,6 @@ export default function ChatPage() {
 
                 </svg>
 
-                <span>Human Agent</span>
-
               </button>
 
             )}
@@ -3873,7 +4182,7 @@ export default function ChatPage() {
 
               <button
 
-                onClick = {() => setFontSize((prev) => Math.max(10, prev - 1))}
+                onClick = {() => setFontSize((prev) => Math.max(0, prev - 1))}
 
                 className = "icon-btn"
 
@@ -3914,9 +4223,9 @@ export default function ChatPage() {
 
               onClick = {toggleDark}
 
-              className = "text-sm px-3 py-1.5 rounded-lg border border-[var(--tm-border-light)] hover:bg-[var(--techmart-gray-100)] transition-colors text-[var(--tm-text-slate)]"
+              className = "icon-tooltip-btn"
 
-              title = "Toggle dark mode"
+              data-tooltip = "Toggle dark mode"
 
             >
 
@@ -4005,9 +4314,25 @@ export default function ChatPage() {
 
                     </div>
 
-                    <h2 className = "text-xl font-semibold text-[var(--tm-text-strong)] mb-2">Welcome to TechMart AI Support</h2>
+                    <h2
 
-                    <p className = "text-sm text-[var(--tm-text-muted)] mb-6 max-w-sm">
+                      className = "text-xl font-semibold text-[var(--tm-text-strong)] mb-2"
+
+                      style = {{ fontFamily: "'Lora', Georgia, 'Times New Roman', serif" }}
+
+                    >
+
+                      Welcome to TechMart AI Support
+
+                    </h2>
+
+                    <p
+
+                      className = "text-sm text-[var(--tm-text-muted)] mb-6 max-w-sm"
+
+                      style = {{ fontFamily: "'Lora', Georgia, 'Times New Roman', serif" }}
+
+                    >
 
                       I'm here to help with billing, technical issues, product info, and more. Ask me anything!
 
@@ -4022,6 +4347,8 @@ export default function ChatPage() {
                           key = {q}
 
                           className = "quick-question-btn text-left text-sm bg-white border border-[var(--tm-border-light)] rounded-xl px-4 py-3 text-[var(--tm-text-slate)]"
+
+                          style = {{ fontFamily: "'Lora', Georgia, 'Times New Roman', serif" }}
 
                           onClick = {() => {
 

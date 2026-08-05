@@ -9,48 +9,50 @@
    so the palette can change here without touching any component. */
 :root {
 
-  /* Primitives — neutral scale (warm-gray, not blue-gray or beige) */
-  --techmart-gray-50: #fafaf9;
+  /* Primitives — cool blue-gray scale, matching the Clearbit reference
+     (white surfaces, deep navy ink, electric-blue accent) instead of
+     the previous warm-gray/muted-blue palette */
+  --techmart-gray-50: #f7f9fc;
 
-  --techmart-gray-100: #f2f0ec;
+  --techmart-gray-100: #eaf2ff;
 
-  --techmart-gray-200: #e5e2dc;
+  --techmart-gray-200: #e1e9f0;
 
-  --techmart-blue: #3b5ba9;
+  --techmart-blue: #0f77ff;
 
-  --techmart-blue-dark: #2f4880;
+  --techmart-blue-dark: #127ee3;
 
-  --techmart-blue-light: #e8edf7;
+  --techmart-blue-light: #eaf2ff;
 
-  --techmart-gray-700: #4a463d;
+  --techmart-gray-700: #414a63;
 
-  --techmart-gray-900: #1e1c18;
+  --techmart-gray-900: #0f1533;
 
   --sidebar-width: 280px;
 
   /* Semantic — text, borders, danger. Consumed directly by chat.js. */
-  --tm-text-strong: #1e1c18;
+  --tm-text-strong: #0f1533;
 
-  --tm-text-muted: #837c70;
+  --tm-text-muted: #5b6479;
 
-  --tm-text-faint: #a89f92;
+  --tm-text-faint: #96a0b5;
 
-  --tm-text-slate: #5b5647;
+  --tm-text-slate: #414a63;
 
-  --tm-text-slate-dim: #6b6558;
+  --tm-text-slate-dim: #4c5670;
 
-  --tm-border-light: #e5e2dc;
+  --tm-border-light: #e1e9f0;
 
-  --tm-danger: #c1442c;
+  --tm-danger: #d1372a;
 
-  --tm-success: #3f7d58;
+  --tm-success: #1f9d5c;
 
-  --tm-warning: #a6741c;
+  --tm-warning: #b8791c;
 
   /* Agent icon accent pair — the fill/stroke used inside AGENT_META svgs */
-  --tm-accent-fill: #e8edf7;
+  --tm-accent-fill: #eaf2ff;
 
-  --tm-accent-stroke: #3b5ba9;
+  --tm-accent-stroke: #0f77ff;
 
   --tm-surface: #ffffff;
 
@@ -61,11 +63,11 @@
 
   --tm-radius-lg: 14px;
 
-  --tm-shadow-sm: 0 1px 2px rgba(30, 28, 24, 0.05), 0 1px 1px rgba(30, 28, 24, 0.03);
+  --tm-shadow-sm: 0 1px 2px rgba(15, 21, 51, 0.05), 0 1px 1px rgba(15, 21, 51, 0.03);
 
-  --tm-shadow-md: 0 4px 16px rgba(30, 28, 24, 0.07);
+  --tm-shadow-md: 0 4px 16px rgba(15, 21, 51, 0.07);
 
-  --tm-shadow-lg: 0 16px 40px rgba(30, 28, 24, 0.12);
+  --tm-shadow-lg: 0 16px 40px rgba(15, 21, 51, 0.12);
 
   --tm-ease: cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -90,7 +92,7 @@ body {
 
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
-  background-color: var(--techmart-gray-50);
+  background-color: #ffffff;
 
   color: var(--techmart-gray-900);
 
@@ -177,7 +179,7 @@ h6 {
 
   background: rgb(255, 255, 255);
 
-  color: rgb(255, 255, 255);
+  color: var(--tm-text-strong);
 
   display: flex;
 
@@ -204,9 +206,11 @@ h6 {
 /* Message Bubbles — the two chat bubble styles: outgoing (user) and incoming (assistant) */
 .message-user {
 
-  background: var(--techmart-gray-900);
+  background: var(--techmart-blue);
 
   color: rgb(255, 255, 255);
+
+  font-family: 'Lora', Georgia, 'Times New Roman', serif;
 
   border-radius: 18px 18px 4px 18px;
 
@@ -237,6 +241,8 @@ h6 {
   background: #ffffff;
 
   color: var(--tm-text-strong);
+
+  font-family: 'Lora', Georgia, 'Times New Roman', serif;
 
   border: 1px solid var(--tm-border-light);
 
@@ -270,9 +276,9 @@ h6 {
 
   flex-shrink: 0;
 
-  background: var(--tm-text-strong);
+  background: var(--techmart-blue-light);
 
-  color: var(--techmart-gray-50);
+  color: var(--techmart-blue-dark);
 
   font-weight: 650;
 
@@ -353,9 +359,9 @@ h6 {
 
   font-weight: 500;
 
-  padding: 2px 8px;
+  padding: 2px 10px;
 
-  border-radius: 20px;
+  border-radius: 9999px;
 
   letter-spacing: 0.3px;
 
@@ -412,9 +418,58 @@ h6 {
 }
 
 /* Sentiment Badge — color-codes the detected sentiment of a message */
+/* Sentiment badge — pill-shaped icon+label tag shown under assistant
+   messages. Background tint is a very light version of the same
+   color set on .sentiment-* below, so icon/text/background stay in
+   the same hue family per sentiment. Entrance animation: fades and
+   rises in slightly rather than popping in instantly. */
+.sentiment-badge {
+
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 5px;
+
+  font-size: 11px;
+
+  font-weight: 500;
+
+  padding: 3px 9px 3px 7px;
+
+  border-radius: 9999px;
+
+  background: rgba(15, 21, 51, 0.05);
+
+  animation: sentimentIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+
+}
+
+@keyframes sentimentIn {
+
+  from {
+
+    opacity: 0;
+
+    transform: translateY(3px) scale(0.96);
+
+  }
+
+  to {
+
+    opacity: 1;
+
+    transform: translateY(0) scale(1);
+
+  }
+
+}
+
 .sentiment-positive {
 
   color: var(--tm-success);
+
+  background: rgba(22, 163, 74, 0.09);
 
 }
 
@@ -422,17 +477,23 @@ h6 {
 
   color: var(--tm-text-slate);
 
+  background: rgba(65, 74, 99, 0.07);
+
 }
 
 .sentiment-negative {
 
   color: var(--tm-warning);
 
+  background: rgba(184, 121, 28, 0.09);
+
 }
 
 .sentiment-frustrated {
 
   color: var(--tm-danger);
+
+  background: rgba(220, 38, 38, 0.09);
 
 }
 
@@ -447,11 +508,11 @@ h6 {
 
   padding: 10px 12px;
 
-  border-radius: var(--tm-radius-sm);
+  border-radius: 9999px;
 
   cursor: pointer;
 
-  transition: background 0.15s var(--tm-ease), transform 0.15s var(--tm-ease);
+  transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 
   font-size: 14px;
 
@@ -463,7 +524,7 @@ h6 {
 
   background: var(--techmart-gray-100);
 
-  color: var(--tm-text-strong);
+  transform: translateX(2px);
 
 }
 
@@ -474,6 +535,12 @@ h6 {
   color: var(--techmart-blue-dark);
 
   font-weight: 600;
+
+}
+
+.sidebar-item:active {
+
+  transform: scale(0.98);
 
 }
 
@@ -521,11 +588,162 @@ h6 {
 
 }
 
+/* Icon Tooltip Button — round icon-only action button (Rate / Export /
+   Human Agent in the chat header) with a CSS-only fade-in tooltip on
+   hover, driven by a data-tooltip attribute instead of the native
+   title attribute (which has no animation control and a slow browser
+   delay). Icon lifts and scales slightly on hover for a livelier feel. */
+.icon-tooltip-btn {
+
+  position: relative;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  width: 36px;
+
+  height: 36px;
+
+  border-radius: 50%;
+
+  border: 1px solid var(--tm-border-light);
+
+  background: #ffffff;
+
+  color: var(--tm-text-slate);
+
+  cursor: pointer;
+
+  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), color 0.18s cubic-bezier(0.4, 0, 0.2, 1), background 0.18s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.18s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+
+}
+
+.icon-tooltip-btn:hover {
+
+  transform: translateY(-2px) scale(1.06);
+
+  box-shadow: var(--tm-shadow-sm);
+
+}
+
+.icon-tooltip-btn:active {
+
+  transform: translateY(0) scale(0.96);
+
+}
+
+.icon-tooltip-btn::after {
+
+  content: attr(data-tooltip);
+
+  position: absolute;
+
+  top: calc(100% + 6px);
+
+  left: 50%;
+
+  transform: translateX(-50%) translateY(-2px);
+
+  background: #1f2430;
+
+  color: #ffffff;
+
+  font-size: 11px;
+
+  font-weight: 400;
+
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  white-space: nowrap;
+
+  padding: 3px 7px;
+
+  border-radius: 3px;
+
+  opacity: 0;
+
+  pointer-events: none;
+
+  transition: opacity 0.1s linear;
+
+  z-index: 20;
+
+}
+
+.icon-tooltip-btn:hover::after {
+
+  opacity: 1;
+
+  transform: translateX(-50%) translateY(0);
+
+}
+
+.icon-tooltip-btn:last-child::after {
+
+  left: auto;
+
+  right: 0;
+
+  transform: translateY(-2px);
+
+}
+
+.icon-tooltip-btn:last-child:hover::after {
+
+  transform: translateY(0);
+
+}
+
+.icon-tooltip-btn.tooltip-rate:hover {
+
+  color: var(--tm-warning);
+
+  background: rgba(166, 116, 28, 0.08);
+
+  border-color: rgba(166, 116, 28, 0.3);
+
+}
+
+.icon-tooltip-btn.tooltip-export:hover {
+
+  color: var(--techmart-blue);
+
+  background: var(--techmart-blue-light);
+
+  border-color: var(--techmart-blue);
+
+}
+
+.icon-tooltip-btn.tooltip-escalate:hover {
+
+  color: var(--tm-danger);
+
+  background: rgba(193, 68, 44, 0.08);
+
+  border-color: rgba(193, 68, 44, 0.3);
+
+}
+
+/* Analytics 30-day trend chart — hover point grows slightly to confirm
+   the larger invisible hit-area is being targeted correctly. */
+.trend-point-dot {
+
+  transition: r 0.15s var(--tm-ease);
+
+}
+
+.trend-point:hover .trend-point-dot {
+
+  r: 5;
+
+}
+
 .icon-btn-success:hover {
 
-  color: var(--tm-success);
-
-  background: rgba(63, 125, 88, 0.08);
+  background: var(--techmart-gray-100);
 
 }
 
@@ -649,11 +867,19 @@ h6 {
 
   background: white;
 
+  color: var(--tm-text-strong);
+
+  font-family: 'Lora', Georgia, 'Times New Roman', serif;
+
+  font-weight: 450;
+
   transition:
 
     border-color 0.15s var(--tm-ease),
 
-    box-shadow 0.15s var(--tm-ease);
+    box-shadow 0.15s var(--tm-ease),
+
+    font-weight 0.15s var(--tm-ease);
 
   width: 100%;
 
@@ -664,6 +890,10 @@ h6 {
   border-color: var(--techmart-blue);
 
   box-shadow: 0 0 0 3px var(--techmart-blue-light);
+
+  color: #0a0f26;
+
+  font-weight: 500;
 
 }
 
@@ -781,7 +1011,7 @@ h6 {
 
   background: var(--techmart-blue);
 
-  cursor: allowed;
+  cursor: pointer;
 
 }
 
@@ -1120,31 +1350,35 @@ header,
    the light-mode defaults defined in :root above */
 .dark-mode {
 
-  --dm-bg-base: #14161b;
+  /* Same electric-blue/navy family as light mode, darkened for a dark
+     surface — background hues pull slightly toward --color-midnight-ink
+     (#091135) instead of a neutral gray, so the two modes read as one
+     coherent brand rather than two unrelated themes */
+  --dm-bg-base: #0b1024;
 
-  --dm-bg-elevated: #1b1e24;
+  --dm-bg-elevated: #10152c;
 
-  --dm-bg-card: #1f2229;
+  --dm-bg-card: #141a34;
 
-  --dm-bg-hover: #262a32;
+  --dm-bg-hover: #1b223f;
 
-  --dm-bg-input: #1a1d23;
+  --dm-bg-input: #10152c;
 
-  --dm-border: #2c2f38;
+  --dm-border: #232b4d;
 
-  --dm-border-subtle: #24272e;
+  --dm-border-subtle: #1a2140;
 
-  --dm-text-primary: #e9e9ec;
+  --dm-text-primary: #eef2fa;
 
-  --dm-text-secondary: #9b9ea6;
+  --dm-text-secondary: #a3aecb;
 
-  --dm-text-muted: #6c6f78;
+  --dm-text-muted: #6c7699;
 
-  --dm-accent: #6a8ee0;
+  --dm-accent: #3d8bff;
 
-  --dm-accent-hover: #5a7cd0;
+  --dm-accent-hover: #0f77ff;
 
-  --dm-accent-soft: rgba(106, 142, 224, 0.14);
+  --dm-accent-soft: rgba(61, 139, 255, 0.16);
 
   --dm-danger: #e2685a;
 
@@ -1290,7 +1524,7 @@ header,
 
   color: #ffffff;
 
-  box-shadow: 0 2px 10px rgba(106, 142, 224, 0.25);
+  box-shadow: 0 2px 10px rgba(61, 139, 255, 0.25);
 
 }
 
@@ -1475,9 +1709,67 @@ header,
 
 .dark-mode .icon-btn-success:hover {
 
-  color: #7fc79a;
+  background: rgba(255, 255, 255, 0.06);
 
-  background: rgba(127, 199, 154, 0.1);
+}
+
+/* Icon Tooltip Button — dark mode. Without this override these
+   buttons (Rate / Export / Human Agent / dark-mode toggle) kept their
+   light-mode white background and mid-gray icon color even in dark
+   mode, making them low-contrast against the dark header. */
+.dark-mode .icon-tooltip-btn {
+
+  background: var(--dm-bg-card);
+
+  border-color: var(--dm-border);
+
+  color: var(--dm-text-secondary);
+
+}
+
+.dark-mode .icon-tooltip-btn:hover {
+
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+
+}
+
+.dark-mode .icon-tooltip-btn::after {
+
+  background: var(--dm-bg-elevated);
+
+  color: var(--dm-text-primary);
+
+  border: 1px solid var(--dm-border);
+
+}
+
+.dark-mode .icon-tooltip-btn.tooltip-rate:hover {
+
+  color: #e0b563;
+
+  background: rgba(224, 181, 99, 0.12);
+
+  border-color: rgba(224, 181, 99, 0.35);
+
+}
+
+.dark-mode .icon-tooltip-btn.tooltip-export:hover {
+
+  color: var(--dm-accent);
+
+  background: var(--dm-accent-soft);
+
+  border-color: var(--dm-accent);
+
+}
+
+.dark-mode .icon-tooltip-btn.tooltip-escalate:hover {
+
+  color: var(--dm-danger);
+
+  background: var(--dm-danger-soft);
+
+  border-color: var(--dm-danger);
 
 }
 
