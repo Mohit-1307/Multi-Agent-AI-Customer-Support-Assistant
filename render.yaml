@@ -1,3 +1,45 @@
+# services:
+#   - type: web
+#     name: techmart-backend
+#     env: python
+#     buildCommand: pip install -r requirements.txt
+#     startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+#     envVars:
+#       - key: DATABASE_URL
+#         sync: false
+#       - key: SECRET_KEY
+#         sync: false
+#       - key: GROQ_API_KEY
+#         sync: false
+#       - key: GROQ_MODEL
+#         value: llama-3.1-8b-instant
+#       - key: LLM_PROVIDER
+#         value: groq
+#       - key: SMTP_HOST
+#         value: smtp.gmail.com
+#       - key: SMTP_PORT
+#         value: 587
+#       - key: SMTP_USER
+#         sync: false
+#       - key: SMTP_PASSWORD
+#         sync: false
+#       - key: SUPPORT_EMAIL
+#         sync: false
+#       - key: TWILIO_ACCOUNT_SID
+#         sync: false
+#       - key: TWILIO_AUTH_TOKEN
+#         sync: false
+#       - key: TWILIO_WHATSAPP_FROM
+#         value: "whatsapp:+14155238886"
+#       - key: EMBEDDING_MODEL
+#         value: all-MiniLM-L6-v2
+#       - key: TOP_K_RESULTS
+#         value: 1
+#       - key: MAX_TOKENS
+#         value: 150
+#       - key: TEMPERATURE
+#         value: 0.4
+
 services:
   - type: web
     name: techmart-backend
@@ -15,6 +57,15 @@ services:
         value: llama-3.1-8b-instant
       - key: LLM_PROVIDER
         value: groq
+      # Base URL of the deployed frontend (Vercel) — used to build links
+      # in emails (password reset, etc). Update after the Vercel deploy
+      # is live, e.g. https://your-app.vercel.app
+      - key: FRONTEND_URL
+        sync: false
+      # OAuth 2.0 Client ID from Google Cloud Console — must also be set
+      # as NEXT_PUBLIC_GOOGLE_CLIENT_ID on the Vercel frontend, same value
+      - key: GOOGLE_CLIENT_ID
+        sync: false
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT

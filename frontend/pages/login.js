@@ -13,6 +13,12 @@ import Link from "next/link";
 
 import { authAPI } from "../services/api";
 
+import GoogleSignInButton from "../components/GoogleSignInButton";
+
+import OTPLogin from "../components/OTPLogin";
+
+import AddPhoneModal from "../components/AddPhoneModal";
+
 export default function LoginPage() {
 
   const router = useRouter();
@@ -29,12 +35,56 @@ export default function LoginPage() {
   // To Show/Hide Password
   const [showPassword, setShowPassword] = useState(false);
 
+  // Which login method is currently shown: "password" or "otp"
+  const [loginMethod, setLoginMethod] = useState("password");
+
+  // Shown once right after a Google sign-in that has no phone on file yet
+  const [showAddPhone, setShowAddPhone] = useState(false);
+
   useEffect(() => {
 
     // If a valid session already exists, skip the login form entirely
     if (authAPI.isLoggedIn()) router.push("/chat");
 
   }, []);
+
+  const handleGoogleCredential = async (idToken) => {
+
+    setError("");
+
+    setLoading(true);
+
+    try {
+
+      const data = await authAPI.googleLogin(idToken);
+
+      if (!data.user?.phone) {
+
+        setShowAddPhone(true);
+
+      } else {
+
+        router.push("/chat");
+
+      }
+
+    } catch (err) {
+
+      setError(err.message || "Google sign-in failed. Please try again.");
+
+    } finally {
+
+      setLoading(false);
+
+    }
+
+  };
+
+  const handleOTPSuccess = () => {
+
+    router.push("/chat");
+
+  };
 
   // Generic change handler — updates whichever field the user is typing into,
   // matched by the input's "name" attribute
@@ -144,6 +194,64 @@ export default function LoginPage() {
           {/* Card */}
           <div className = "card p-8">
 
+            <GoogleSignInButton onCredential = {handleGoogleCredential} onError = {(err) => setError(err.message)} />
+
+            <div className = "flex items-center gap-3 my-5">
+
+              <div className = "flex-1 h-px bg-[var(--tm-border-light)]" />
+
+              <span className = "text-xs text-[var(--tm-text-faint)]">OR SIGN IN WITH</span>
+
+              <div className = "flex-1 h-px bg-[var(--tm-border-light)]" />
+
+            </div>
+
+            <div className = "flex gap-2 mb-5 p-1 rounded-xl bg-[var(--techmart-gray-100)]">
+
+              <button
+
+                type = "button"
+
+                onClick = {() => { setLoginMethod("password"); setError(""); }}
+
+                className = {`flex-1 text-sm font-medium py-2 rounded-lg transition-colors ${
+
+                  loginMethod === "password" ? "bg-white text-[var(--tm-text-strong)] shadow-sm" : "text-[var(--tm-text-muted)]"
+
+                }`}
+
+              >
+
+                Password
+
+              </button>
+
+              <button
+
+                type = "button"
+
+                onClick = {() => { setLoginMethod("otp"); setError(""); }}
+
+                className = {`flex-1 text-sm font-medium py-2 rounded-lg transition-colors ${
+
+                  loginMethod === "otp" ? "bg-white text-[var(--tm-text-strong)] shadow-sm" : "text-[var(--tm-text-muted)]"
+
+                }`}
+
+              >
+
+                Email Code
+
+              </button>
+
+            </div>
+
+            {loginMethod === "otp" ? (
+
+              <OTPLogin onSuccess = {handleOTPSuccess} collectName = {false} />
+
+            ) : (
+
             <form onSubmit = {handleSubmit} className = "space-y-5">
 
               <div>
@@ -185,6 +293,18 @@ export default function LoginPage() {
                     Password
 
                   </label>
+
+                  <Link
+
+                    href = "/forgot-password"
+
+                    className = "text-xs text-[var(--techmart-blue)] hover:text-[var(--techmart-blue-dark)] font-medium transition-colors"
+
+                  >
+
+                    Forgot password?
+
+                  </Link>
 
                 </div>
 
@@ -342,6 +462,8 @@ export default function LoginPage() {
 
             </form>
 
+            )}
+
             <div className = "mt-6 pt-6 border-t border-[var(--tm-border-light)] text-center">
 
               <p className = "text-[var(--tm-text-muted)] text-sm">
@@ -365,20 +487,15 @@ export default function LoginPage() {
 
           </div>
 
-          {/* Demo credentials hint */}
-          <div className = "mt-4 text-center">
-
-            <p className = "text-[var(--tm-text-faint)] text-xs">
-
-              Demo: admin@gmail.com / admin123
-
-            </p>
-
-          </div>
-
         </div>
 
       </div>
+
+      {showAddPhone && (
+
+        <AddPhoneModal onClose = {() => { setShowAddPhone(false); router.push("/chat"); }} />
+
+      )}
 
     </>
 

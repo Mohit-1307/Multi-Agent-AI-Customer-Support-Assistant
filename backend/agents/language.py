@@ -15,7 +15,7 @@ detect_language() from here instead.
 COVERAGE:
     English, Hindi, Marathi, Nepali, Bengali, Tamil, Telugu, Kannada,
     Malayalam, Gujarati, Punjabi, Odia, Urdu, Spanish, French, German,
-    Japanese, Arabic, Chinese.
+    Japanese, Arabic, Chinese, Russian, Korean.
 
 KNOWN LIMITATION — Devanagari-script languages:
     Hindi, Marathi, Nepali, Sanskrit, Konkani, and Maithili all use the
@@ -58,6 +58,10 @@ _ARABIC_RANGE = ("\u0600", "\u06ff")       # also covers Urdu, which is written 
 _JAPANESE_RANGE = ("\u3040", "\u30ff")     # Hiragana/Katakana
 
 _CHINESE_RANGE = ("\u4e00", "\u9fff")      # CJK
+
+_CYRILLIC_RANGE = ("\u0400", "\u04ff")     # Russian and other Cyrillic-script languages
+
+_HANGUL_RANGE = ("\uac00", "\ud7a3")       # Korean
 
 
 # ------------------------------------------------------------------
@@ -187,6 +191,14 @@ def detect_language(text: str) -> str:
     if any(_CHINESE_RANGE[0] <= c <= _CHINESE_RANGE[1] for c in text):
 
         return "Chinese"
+
+    if any(_CYRILLIC_RANGE[0] <= c <= _CYRILLIC_RANGE[1] for c in text):
+
+        return "Russian"
+
+    if any(_HANGUL_RANGE[0] <= c <= _HANGUL_RANGE[1] for c in text):
+
+        return "Korean"
 
     # Latin-alphabet languages — keyword matching only, since the script
     # itself doesn't distinguish them from English

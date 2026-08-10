@@ -78,17 +78,17 @@ def send_escalation_whatsapp(customer_name: str, customer_phone: str, reference:
 
     message = (
 
-        f"Hello {customer_name}! 👋\n\n"
-
         f"*TechMart Electronics Support*\n\n"
+
+        f"Hello {customer_name},\n\n"
 
         f"Your case has been escalated to a human agent.\n\n"
 
-        f"📋 *Reference:* {reference}\n"
+        f"Reference: {reference}\n"
 
-        f"⏰ *Response Time:* Within 2 business hours\n\n"
+        f"Response time: within 2 business hours\n\n"
 
-        f"📞 Need immediate help?\n"
+        f"Need immediate help?\n"
 
         f"Call: 1-800-TECHMART\n"
 
@@ -105,26 +105,23 @@ def send_ticket_whatsapp(customer_name: str, customer_phone: str, ticket_number:
     
     "Send a WhatsApp message when a support ticket is auto-created."
 
-    # Pick an emoji indicator matching the ticket's priority level
-    priority_emoji = ("🔴" if priority == "high" else "🟡" if priority == "medium" else "🟢")
-
     message = (
-
-        f"Hello {customer_name}! 👋\n\n"
 
         f"*TechMart Electronics Support*\n\n"
 
+        f"Hello {customer_name},\n\n"
+
         f"A support ticket has been created for you.\n\n"
 
-        f"🎫 *Ticket:* {ticket_number}\n"
+        f"Ticket: {ticket_number}\n"
 
-        f"{priority_emoji} *Priority:* {priority.upper()}\n"
+        f"Priority: {priority.upper()}\n"
 
-        f"📊 *Status:* OPEN\n\n"
+        f"Status: OPEN\n\n"
 
-        f"Our team will contact you soon!\n\n"
+        f"Our team will contact you soon.\n\n"
 
-        f"📞 1-800-TECHMART\n"
+        f"Call: 1-800-TECHMART\n\n"
 
         f"_TechMart AI Support System_"
 

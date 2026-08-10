@@ -5,10 +5,27 @@
 
 import "../styles/globals.css";
 
+import Script from "next/script";
+
+import { LanguageProvider } from "../components/LanguageProvider";
+
 export default function App({ Component, pageProps }) {
 
   // Component is whichever page is currently being rendered (chat, login, etc.),
   // and pageProps are the props Next.js passes to that page
-  return <Component {...pageProps} />;
+  return (
+
+    <LanguageProvider>
+
+      {/* Google Identity Services — loaded once globally so any page
+          (login, register) can render a "Sign in with Google" button
+          without needing to inject the script itself. */}
+      <Script src = "https://accounts.google.com/gsi/client" strategy = "afterInteractive" />
+
+      <Component {...pageProps} />
+
+    </LanguageProvider>
+
+  );
 
 }

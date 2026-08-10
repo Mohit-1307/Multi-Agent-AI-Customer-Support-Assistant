@@ -530,11 +530,7 @@ h6 {
 
 .sidebar-item.active {
 
-  background: var(--techmart-blue-light);
-
-  color: var(--techmart-blue-dark);
-
-  font-weight: 600;
+  background: var(--techmart-gray-100);
 
 }
 
@@ -647,11 +643,11 @@ h6 {
 
   transform: translateX(-50%) translateY(-2px);
 
-  background: #1f2430;
+  background: #616161;
 
   color: #ffffff;
 
-  font-size: 11px;
+  font-size: 12px;
 
   font-weight: 400;
 
@@ -659,9 +655,11 @@ h6 {
 
   white-space: nowrap;
 
-  padding: 3px 7px;
+  padding: 5px 8px;
 
-  border-radius: 3px;
+  border: 1.5px solid #f5f5f5;
+
+  border-radius: 2px;
 
   opacity: 0;
 
@@ -785,9 +783,7 @@ h6 {
 
 .menu-item-danger {
 
-  color: var(--tm-danger);
-
-  opacity: 0.75;
+  color: var(--tm-text-muted);
 
   padding-left: 14px;
 
@@ -795,7 +791,7 @@ h6 {
 
 .menu-item-danger:hover {
 
-  opacity: 1;
+  color: var(--tm-danger);
 
   background: rgba(193, 68, 44, 0.08);
 
@@ -1050,6 +1046,21 @@ h6 {
 
 }
 
+/* Dialog box — used by DialogProvider's confirm/alert/prompt modals.
+   A visible tinted gradient (not flat white, not just barely-off-white)
+   for a premium look distinct from plain white cards. */
+.dialog-box {
+
+  background: linear-gradient(160deg, #eef4ff 0%, #ffffff 55%, #f3f0ff 100%);
+
+  border-radius: var(--tm-radius-lg);
+
+  border: 1px solid var(--tm-border-light);
+
+  box-shadow: 0 20px 60px rgba(15, 21, 51, 0.25);
+
+}
+
 /* Star Rating — the clickable stars used in the feedback widget */
 .star-btn {
 
@@ -1105,6 +1116,10 @@ h6 {
   background: white;
 
   color: var(--tm-text-strong);
+
+  font-family: 'Lora', Georgia, 'Times New Roman', serif;
+
+  font-weight: 450;
 
 }
 
@@ -1564,6 +1579,16 @@ header,
 
 }
 
+.dark-mode .dialog-box {
+
+  background: linear-gradient(160deg, #1a2140 0%, var(--dm-bg-card) 55%, #1c1730 100%);
+
+  border: 1px solid var(--dm-border-subtle);
+
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+
+}
+
 /* Input Area */
 .dark-mode .input-area {
 
@@ -1730,16 +1755,6 @@ header,
 .dark-mode .icon-tooltip-btn:hover {
 
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-
-}
-
-.dark-mode .icon-tooltip-btn::after {
-
-  background: var(--dm-bg-elevated);
-
-  color: var(--dm-text-primary);
-
-  border: 1px solid var(--dm-border);
 
 }
 

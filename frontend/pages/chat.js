@@ -10,7 +10,13 @@ import { useRouter } from "next/router";
 
 import Head from "next/head";
 
-import { chatAPI, sessionsAPI, feedbackAPI, authAPI, analyticsAPI } from "../services/api";
+import { chatAPI, sessionsAPI, feedbackAPI, authAPI, analyticsAPI, translateAPI, bugReportAPI } from "../services/api";
+
+import { DialogProvider, useDialog } from "../components/DialogProvider";
+
+import { useLanguage } from "../components/LanguageProvider";
+
+import { LANGUAGES, LANGUAGE_NAMES } from "../data/translations";
 
 // Small helper function that wraps the part of a text string that
 // matches the user's search query in a <mark> tag, so it shows up
@@ -511,7 +517,7 @@ function FeedbackModal({ sessionId, onClose }) {
 
   return (
 
-    <div className = "fixed inset-0 bg-[var(--techmart-gray-900)]/40 flex items-center justify-center z-50 fade-in">
+    <div className = "fixed inset-0 bg-[var(--techmart-gray-900)]/40 flex items-center justify-center z-[100] fade-in">
 
       <div className = "card p-6 w-full max-w-md mx-4">
 
@@ -519,7 +525,25 @@ function FeedbackModal({ sessionId, onClose }) {
 
           <div className = "text-center py-4">
 
-            <div className = "text-4xl mb-3">🙏</div>
+            <div className = "flex items-center justify-center mb-3">
+
+              <div
+
+                className = "flex items-center justify-center rounded-full"
+
+                style = {{ width: 48, height: 48, background: "var(--tm-success)" }}
+
+              >
+
+                <svg width = "24" height = "24" viewBox = "0 0 24 24" fill = "none" stroke = "#ffffff" strokeWidth = "2.5" strokeLinecap = "round" strokeLinejoin = "round">
+
+                  <polyline points = "20 6 9 17 4 12" />
+
+                </svg>
+
+              </div>
+
+            </div>
 
             <p className = "font-medium text-lg text-[var(--tm-text-strong)]">Thank you for your feedback!</p>
 
@@ -594,6 +618,236 @@ function FeedbackModal({ sessionId, onClose }) {
             </div>
 
           </>
+
+        )}
+
+      </div>
+
+    </div>
+
+  );
+
+}
+
+function BugReportModal({ onClose }) {
+
+  const [title, setTitle] = useState("");
+
+  const [description, setDescription] = useState("");
+
+  const [stepsToReproduce, setStepsToReproduce] = useState("");
+
+  const [submitting, setSubmitting] = useState(false);
+
+  const [submitted, setSubmitted] = useState(false);
+
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e) => {
+
+    e.preventDefault();
+
+    setError("");
+
+    if (!title.trim() || title.trim().length < 3) {
+
+      setError("Please enter a short title (at least 3 characters).");
+
+      return;
+
+    }
+
+    if (!description.trim() || description.trim().length < 10) {
+
+      setError("Please describe the bug in a bit more detail (at least 10 characters).");
+
+      return;
+
+    }
+
+    setSubmitting(true);
+
+    try {
+
+      const pageUrl = typeof window !== "undefined" ? window.location.href : null;
+
+      await bugReportAPI.submit(title.trim(), description.trim(), stepsToReproduce.trim() || null, pageUrl);
+
+      setSubmitted(true);
+
+      setTimeout(onClose, 1800);
+
+    } catch (err) {
+
+      setError(err.message || "Failed to submit bug report. Please try again.");
+
+    } finally {
+
+      setSubmitting(false);
+
+    }
+
+  };
+
+  return (
+
+    <div className = "fixed inset-0 bg-[var(--techmart-gray-900)]/40 flex items-center justify-center z-[100] fade-in" onClick = {onClose}>
+
+      <div className = "card p-6 w-full max-w-md mx-4" onClick = {(e) => e.stopPropagation()}>
+
+        {submitted ? (
+
+          <div className = "text-center py-4">
+
+            <div className = "flex items-center justify-center mb-3">
+
+              <div
+
+                className = "flex items-center justify-center rounded-full"
+
+                style = {{ width: 48, height: 48, background: "var(--tm-success)" }}
+
+              >
+
+                <svg width = "24" height = "24" viewBox = "0 0 24 24" fill = "none" stroke = "#ffffff" strokeWidth = "2.5" strokeLinecap = "round" strokeLinejoin = "round">
+
+                  <polyline points = "20 6 9 17 4 12" />
+
+                </svg>
+
+              </div>
+
+            </div>
+
+            <p className = "font-medium text-lg text-[var(--tm-text-strong)]">Thanks for the report!</p>
+
+            <p className = "text-sm text-[var(--tm-text-muted)] mt-1">Our team will take a look shortly.</p>
+
+          </div>
+
+        ) : (
+
+          <form onSubmit = {handleSubmit} className = "space-y-4">
+
+            <div>
+
+              <h3 className = "text-lg font-semibold text-[var(--tm-text-strong)] mb-1">Report a Bug</h3>
+
+              <p className = "text-sm text-[var(--tm-text-muted)]">Tell us what went wrong — the more detail, the faster we can fix it.</p>
+
+            </div>
+
+            <div>
+
+              <label className = "block text-sm font-medium text-[var(--tm-text-slate)] mb-1.5">Title</label>
+
+              <input
+
+                type = "text"
+
+                value = {title}
+
+                onChange = {(e) => setTitle(e.target.value)}
+
+                placeholder = "e.g. Export CSV button doesn't work"
+
+                className = "auth-input"
+
+                autoFocus
+
+                required
+
+              />
+
+            </div>
+
+            <div>
+
+              <label className = "block text-sm font-medium text-[var(--tm-text-slate)] mb-1.5">What happened?</label>
+
+              <textarea
+
+                value = {description}
+
+                onChange = {(e) => setDescription(e.target.value)}
+
+                placeholder = "Describe the bug in as much detail as you can..."
+
+                className = "auth-input"
+
+                rows = {4}
+
+                style = {{ resize: "vertical", fontFamily: "inherit" }}
+
+                required
+
+              />
+
+            </div>
+
+            <div>
+
+              <label className = "block text-sm font-medium text-[var(--tm-text-slate)] mb-1.5">
+
+                Steps to reproduce <span className = "text-[var(--tm-text-faint)] font-normal">(optional)</span>
+
+              </label>
+
+              <textarea
+
+                value = {stepsToReproduce}
+
+                onChange = {(e) => setStepsToReproduce(e.target.value)}
+
+                placeholder = {"1. Go to...\n2. Click on...\n3. See error"}
+
+                className = "auth-input"
+
+                rows = {3}
+
+                style = {{ resize: "vertical", fontFamily: "inherit" }}
+
+              />
+
+            </div>
+
+            {error && (
+
+              <div className = "bg-[var(--tm-danger)]/10 border border-[var(--tm-danger)]/30 rounded-xl px-4 py-3 text-[var(--tm-danger)] text-sm fade-in">
+
+                ⚠️ {error}
+
+              </div>
+
+            )}
+
+            <div className = "flex gap-2 justify-end">
+
+              <button
+
+                type = "button"
+
+                onClick = {onClose}
+
+                disabled = {submitting}
+
+                className = "px-4 py-2 rounded-xl text-sm font-medium text-[var(--tm-text-muted)] border border-[var(--tm-border-light)] hover:bg-[var(--techmart-gray-100)] hover:text-[var(--tm-text-strong)] transition-colors"
+
+              >
+
+                Cancel
+
+              </button>
+
+              <button type = "submit" disabled = {submitting} className = "btn-primary px-4 py-2 text-sm">
+
+                {submitting ? "Submitting..." : "Submit Report"}
+
+              </button>
+
+            </div>
+
+          </form>
 
         )}
 
@@ -744,7 +998,13 @@ function Sidebar({
 
   onRestoreAll,
 
+  onOpenBugReport,
+
 }) {
+
+  const { confirmDialog, alertDialog, promptDialog } = useDialog();
+
+  const { language, setLanguage, t } = useLanguage();
 
   const [showMenu, setShowMenu] = useState(false);
 
@@ -757,6 +1017,8 @@ function Sidebar({
   const [deletedSessions, setDeletedSessions] = useState([]);
 
   const menuRef = useRef(null);
+
+  const displayTitle = (session) => session.title || "New Conversation";
 
   const loadArchived = async () => {
 
@@ -826,88 +1088,124 @@ function Sidebar({
 
   // Sub-item definitions for the three expandable menu sections. Kept as
   // plain data (same as the original) so MenuSection/MenuRow can just map
-  // over them — the alert() bodies and action logic are untouched.
+  // over them — only the confirm/alert calls were swapped for confirmDialog/alertDialog.
   const SETTINGS_ITEMS = [
 
     {
 
-      label: "Account & Profile",
+      label: t("accountAndProfile"),
 
       action: () =>
 
-        alert(
+        alertDialog({
 
-          `👤 Account\n\nName: ${user?.name}\nEmail: ${user?.email}\nRole: ${user?.is_admin ? "Admin" : "User"}\nMember since: ${new Date(user?.created_at || Date.now()).toLocaleDateString()}`
+          title: "Account",
 
-        ),
+          icon: "👤",
+
+          message: `Name: ${user?.name}\nEmail: ${user?.email}\nRole: ${user?.is_admin ? "Admin" : "User"}\nMember since: ${new Date(user?.created_at || Date.now()).toLocaleDateString()}`,
+
+        }),
 
     },
 
     {
 
-      label: "Notifications",
+      label: t("notifications"),
 
       action: () =>
 
-        alert(
+        alertDialog({
 
-          "🔔 Notifications\n\n✅ Email alerts: Enabled\n✅ Chat summaries: Enabled\n❌ SMS alerts: Disabled\n\nContact support to change notification settings."
+          title: "Notifications",
 
-        ),
+          icon: "🔔",
+
+          message: "✅ Email alerts: Enabled\n✅ Chat summaries: Enabled\n❌ SMS alerts: Disabled\n\nContact support to change notification settings.",
+
+        }),
 
     },
 
     {
 
-      label: "Privacy & Security",
+      label: t("privacyAndSecurity"),
 
       action: () =>
 
-        alert(
+        alertDialog({
 
-          "🔒 Privacy & Security\n\n✅ Data encrypted (256-bit SSL)\n✅ PCI-DSS Level 1 certified\n✅ No data sold to third parties\n\nView full policy: techmartelectronics.com/privacy"
+          title: "Privacy & Security",
 
-        ),
+          icon: "🔒",
+
+          message: "✅ Data encrypted (256-bit SSL)\n✅ PCI-DSS Level 1 certified\n✅ No data sold to third parties\n\nView full policy: techmartelectronics.com/privacy",
+
+        }),
 
     },
 
     {
 
-      label: "Change Password",
+      label: t("changePassword"),
 
-      action: () =>
+      action: async () => {
 
-        alert(
+        try {
 
-          "🔑 Change Password\n\nTo change your password, contact:\nsupport@techmartelectronics.com\n\nOr call: 1-800-TECHMART"
+          await authAPI.forgotPassword(user?.email);
 
-        ),
+          await alertDialog({
+
+            title: "Check your email",
+
+            icon: "📧",
+
+            message: `We've sent a password reset link to ${user?.email}. The link expires in 30 minutes.`,
+
+          });
+
+        } catch (err) {
+
+          await alertDialog({
+
+            title: "Something went wrong",
+
+            icon: "⚠️",
+
+            message: "Failed to send the reset link. Please try again, or contact support@techmartelectronics.com.",
+
+          });
+
+        }
+
+      },
 
     },
 
   ];
 
-  const LANGUAGE_ITEMS = [
+  const LANGUAGE_ITEMS = LANGUAGES.map((lang) => ({
 
-    { label: "🇺🇸  English", action: () => alert("✅ Language set to English") },
+    code: lang.code,
 
-    { label: "🇮🇳  Hindi", action: () => alert("✅ Language set to Hindi\nFull Hindi support coming soon.") },
+    label: `${lang.flag}  ${lang.label}`,
 
-    { label: "🇪🇸  Spanish", action: () => alert("✅ Language set to Spanish\nFull Spanish support coming soon.") },
+    action: () => {
 
-    { label: "🇫🇷  French", action: () => alert("✅ Language set to French\nFull French support coming soon.") },
+      setLanguage(lang.code);
 
-    { label: "🇩🇪  German", action: () => alert("✅ Language set to German\nFull German support coming soon.") },
+      alertDialog({ title: t("language"), icon: "✅", message: `${lang.label}` });
 
-    { label: "🇯🇵  Japanese", action: () => alert("✅ Language set to Japanese\nFull Japanese support coming soon.") },
+    },
 
-  ];
+  }));
 
   const HELP_ITEMS = [
 
     {
 
-      label: "Email Support",
+      label: t("emailSupport"),
 
       icon: (
 
@@ -921,13 +1219,41 @@ function Sidebar({
 
       ),
 
-      action: () => window.open("mailto:support@techmartelectronics.com?subject=Help Request"),
+      action: async () => {
+
+        const email = "support@techmartelectronics.com";
+
+        try {
+
+          await navigator.clipboard.writeText(email);
+
+        } catch (e) {
+
+          // Clipboard API can fail in some contexts — the dialog below
+          // still shows the address so the person can select/copy it manually
+        }
+
+        // Also try to open the system mail client — a no-op if none is
+        // configured, but a nice bonus when one is
+        window.location.href = `mailto:${email}?subject=Help Request`;
+
+        await alertDialog({
+
+          title: "Email Support",
+
+          icon: "📧",
+
+          message: `${email}\n\nCopied to your clipboard. Paste it into your email app to reach us.`,
+
+        });
+
+      },
 
     },
 
     {
 
-      label: "Call 1-800-TECHMART",
+      label: t("callSupport"),
 
       icon: (
 
@@ -939,13 +1265,39 @@ function Sidebar({
 
       ),
 
-      action: () => window.open("tel:18008324627"),
+      action: async () => {
+
+        const phone = "1-800-TECHMART";
+
+        try {
+
+          await navigator.clipboard.writeText(phone);
+
+        } catch (e) {
+
+          // Non-fatal — the dialog below still shows the number
+
+        }
+
+        window.location.href = "tel:18008324627";
+
+        await alertDialog({
+
+          title: "Call Support",
+
+          icon: "📞",
+
+          message: `${phone}\n\nCopied to your clipboard.`,
+
+        });
+
+      },
 
     },
 
     {
 
-      label: "Live Chat",
+      label: t("liveChat"),
 
       icon: (
 
@@ -957,13 +1309,19 @@ function Sidebar({
 
       ),
 
-      action: () => window.open("https://www.techmartelectronics.com/chat"),
+      action: () => {
+
+        setShowMenu(false);
+
+        onNewSession();
+
+      },
 
     },
 
     {
 
-      label: "Documentation",
+      label: t("documentation"),
 
       icon: (
 
@@ -977,13 +1335,13 @@ function Sidebar({
 
       ),
 
-      action: () => window.open("https://www.techmartelectronics.com/support"),
+      action: () => window.open("/documentation", "_blank"),
 
     },
 
     {
 
-      label: "Report a Bug",
+      label: t("reportABug"),
 
       icon: (
 
@@ -997,7 +1355,13 @@ function Sidebar({
 
       ),
 
-      action: () => window.open("mailto:bugs@techmartelectronics.com?subject=Bug Report"),
+      action: () => {
+
+        setShowMenu(false);
+
+        onOpenBugReport();
+
+      },
 
     },
 
@@ -1048,13 +1412,13 @@ function Sidebar({
 
           <div>
 
-            <div style = {{ fontWeight: 650, fontSize: 14, color: "var(--tm-text-strong)" }}>
+            <div style = {{ fontWeight: 650, fontSize: "0.933em", color: "var(--tm-text-strong)" }}>
 
               TechMart AI
 
             </div>
 
-            <div style = {{ fontSize: 11, color: "var(--tm-text-muted)" }}>Customer Support</div>
+            <div style = {{ fontSize: "0.733em", color: "var(--tm-text-muted)" }}>{t("customerSupport")}</div>
 
           </div>
 
@@ -1107,7 +1471,7 @@ function Sidebar({
 
           }
 
-          label = "New Chat"
+          label = {t("newChat")}
 
           active = {false}
 
@@ -1140,7 +1504,7 @@ function Sidebar({
 
           }
 
-          label = "Chats"
+          label = {t("chats")}
 
           active = {activeView === "chats"}
 
@@ -1168,7 +1532,7 @@ function Sidebar({
 
           }
 
-          label = "Analytics"
+          label = {t("analytics")}
 
           active = {activeView === "analytics"}
 
@@ -1202,7 +1566,7 @@ function Sidebar({
 
           }
 
-          label = "Archived Chats"
+          label = {t("archivedChats")}
 
           active = {activeView === "archived"}
 
@@ -1238,7 +1602,7 @@ function Sidebar({
 
           }
 
-          label = "Recently Deleted Chats"
+          label = {t("recentlyDeletedChats")}
 
           active = {activeView === "deleted"}
 
@@ -1326,7 +1690,7 @@ function Sidebar({
 
               type = "text"
 
-              placeholder = "Search Chats"
+              placeholder = {t("searchChats")}
 
               value = {searchQuery}
 
@@ -1366,7 +1730,7 @@ function Sidebar({
 
                   transform: "translateY(-50%)",
 
-                  fontSize: 11,
+                  fontSize: "0.733em",
 
                   borderRadius: "50%",
 
@@ -1404,7 +1768,7 @@ function Sidebar({
 
               style = {{
 
-                fontSize: 10,
+                fontSize: "0.667em",
 
                 fontWeight: 600,
 
@@ -1420,7 +1784,7 @@ function Sidebar({
 
             >
 
-              {searchQuery ? `Results (${filteredSessions.length})` : "Recents"}
+              {searchQuery ? `${t("results")} (${filteredSessions.length})` : t("recents")}
 
             </div>
 
@@ -1431,13 +1795,15 @@ function Sidebar({
                 {/* Archive All */}
                 <button
 
-                  title = "Archive all chats"
+                  title = {t("archiveAll")}
 
                   className = "icon-btn"
 
                   onClick = {async () => {
 
-                    if (window.confirm("Archive all conversations?")) {
+                    const ok = await confirmDialog({ title: "Archive all conversations?", confirmLabel: "Archive" });
+
+                    if (ok) {
 
                       await sessionsAPI.archiveAll();
 
@@ -1464,13 +1830,25 @@ function Sidebar({
                 {/* Delete All */}
                 <button
 
-                  title = "Delete all chats"
+                  title = {t("deleteAll")}
 
                   className = "icon-btn icon-btn-danger"
 
                   onClick = {async () => {
 
-                    if (window.confirm("Delete ALL conversations? This cannot be undone.")) {
+                    const ok = await confirmDialog({
+
+                      title: "Delete all conversations?",
+
+                      message: "This cannot be undone.",
+
+                      confirmLabel: "Delete All",
+
+                      danger: true,
+
+                    });
+
+                    if (ok) {
 
                       await sessionsAPI.deleteAll();
 
@@ -1509,9 +1887,9 @@ function Sidebar({
 
             {filteredSessions.length === 0 && (
 
-              <div style = {{ fontSize: 12, color: "var(--tm-text-faint)", padding: "8px 4px" }}>
+              <div style = {{ fontSize: "0.8em", color: "var(--tm-text-faint)", padding: "8px 4px" }}>
 
-                {searchQuery ? "No results found" : "No conversations yet"}
+                {searchQuery ? t("noResultsFound") : "No conversations yet"}
 
               </div>
 
@@ -1539,13 +1917,13 @@ function Sidebar({
 
                 <div style = {{ flex: 1, minWidth: 0 }}>
 
-                  <div style = {{ fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <div style = {{ fontSize: "0.8em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
 
-                    {s.title || "New Chat"}
+                    {displayTitle(s)}
 
                   </div>
 
-                  <div style = {{ fontSize: 10, color: "var(--tm-text-faint)", marginTop: 1 }}>
+                  <div style = {{ fontSize: "0.667em", color: "var(--tm-text-faint)", marginTop: 1 }}>
 
                     {new Date(s.created_at).toLocaleDateString()}
 
@@ -1577,7 +1955,7 @@ function Sidebar({
 
                     } catch (err) {
 
-                      alert("Failed to archive. Please try again.");
+                      await alertDialog({ title: "Something went wrong", icon: "⚠️", message: "Failed to archive. Please try again." });
 
                     }
 
@@ -1651,7 +2029,7 @@ function Sidebar({
 
               <div style = {{ display: "flex", alignItems: "center", padding: "8px 4px 4px" }}>
 
-                <div style = {{ fontSize: 10, fontWeight: 600, color: "var(--tm-text-slate)", letterSpacing: "0.8px", textTransform: "uppercase", flex: 1 }}>
+                <div style = {{ fontSize: "0.667em", fontWeight: 600, color: "var(--tm-text-slate)", letterSpacing: "0.8px", textTransform: "uppercase", flex: 1 }}>
 
                   Archived ({archivedSessions.length})
 
@@ -1661,15 +2039,17 @@ function Sidebar({
 
                   <button
 
-                    title = "Unarchive all chats"
+                    title = {t("unarchiveAll")}
 
                     className = "icon-btn icon-btn-success"
 
-                    style = {{ fontSize: 10 }}
+                    style = {{ fontSize: "0.667em" }}
 
                     onClick = {async () => {
 
-                      if (window.confirm("Unarchive all conversations?")) {
+                      const ok = await confirmDialog({ title: "Unarchive all conversations?", confirmLabel: "Unarchive" });
+
+                      if (ok) {
 
                         await sessionsAPI.unarchiveAll();
 
@@ -1692,7 +2072,7 @@ function Sidebar({
 
               {archivedSessions.length === 0 && (
 
-                <div style = {{ fontSize: 12, color: "var(--tm-text-faint)", padding: "8px 4px" }}>No archived conversations</div>
+                <div style = {{ fontSize: "0.8em", color: "var(--tm-text-faint)", padding: "8px 4px" }}>No archived conversations</div>
 
               )}
 
@@ -1710,13 +2090,13 @@ function Sidebar({
 
                   <div style = {{ flex: 1, minWidth: 0 }}>
 
-                    <div style = {{ fontSize: 12, color: "var(--tm-text-slate)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div style = {{ fontSize: "0.8em", color: "var(--tm-text-slate)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
 
-                      {s.title || "Archived Chat"}
+                      {displayTitle(s)}
 
                     </div>
 
-                    <div style = {{ fontSize: 10, color: "var(--tm-text-faint)" }}>{new Date(s.created_at).toLocaleDateString()}</div>
+                    <div style = {{ fontSize: "0.667em", color: "var(--tm-text-faint)" }}>{new Date(s.created_at).toLocaleDateString()}</div>
 
                   </div>
 
@@ -1763,7 +2143,7 @@ function Sidebar({
 
               <div style = {{ display: "flex", alignItems: "center", padding: "8px 4px 4px" }}>
 
-                <div style = {{ fontSize: 10, fontWeight: 600, color: "var(--tm-text-slate)", letterSpacing: "0.8px", textTransform: "uppercase", flex: 1 }}>
+                <div style = {{ fontSize: "0.667em", fontWeight: 600, color: "var(--tm-text-slate)", letterSpacing: "0.8px", textTransform: "uppercase", flex: 1 }}>
 
                   Recently Deleted ({deletedSessions.length})
 
@@ -1773,15 +2153,17 @@ function Sidebar({
 
                   <button
 
-                    title = "Restore all chats"
+                    title = {t("restoreAll")}
 
                     className = "icon-btn icon-btn-success"
 
-                    style = {{ fontSize: 10 }}
+                    style = {{ fontSize: "0.667em" }}
 
                     onClick = {async () => {
 
-                      if (window.confirm("Restore all deleted conversations?")) {
+                      const ok = await confirmDialog({ title: "Restore all deleted conversations?", confirmLabel: "Restore" });
+
+                      if (ok) {
 
                         await sessionsAPI.restoreAll();
 
@@ -1804,7 +2186,7 @@ function Sidebar({
 
               {deletedSessions.length === 0 && (
 
-                <div style = {{ fontSize: 12, color: "var(--tm-text-faint)", padding: "8px 4px" }}>No deleted conversations</div>
+                <div style = {{ fontSize: "0.8em", color: "var(--tm-text-faint)", padding: "8px 4px" }}>{t("noDeletedConversations")}</div>
 
               )}
 
@@ -1824,13 +2206,13 @@ function Sidebar({
 
                   <div style = {{ flex: 1, minWidth: 0 }}>
 
-                    <div style = {{ fontSize: 12, color: "var(--tm-text-slate)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div style = {{ fontSize: "0.8em", color: "var(--tm-text-slate)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
 
-                      {s.title || "Deleted Chat"}
+                      {displayTitle(s)}
 
                     </div>
 
-                    <div style = {{ fontSize: 10, color: "var(--tm-text-faint)" }}>{new Date(s.created_at).toLocaleDateString()}</div>
+                    <div style = {{ fontSize: "0.667em", color: "var(--tm-text-faint)" }}>{new Date(s.created_at).toLocaleDateString()}</div>
 
                   </div>
 
@@ -1868,11 +2250,23 @@ function Sidebar({
 
                     className = "icon-btn icon-btn-danger"
 
-                    title = "Delete permanently"
+                    title = {t("deletePermanently")}
 
                     onClick = {async () => {
 
-                      if (window.confirm("Permanently delete this conversation? This CANNOT be undone.")) {
+                      const ok = await confirmDialog({
+
+                        title: "Permanently delete this conversation?",
+
+                        message: "This cannot be undone.",
+
+                        confirmLabel: "Delete Permanently",
+
+                        danger: true,
+
+                      });
+
+                      if (ok) {
 
                         await sessionsAPI.deletePermanent(s.id);
 
@@ -1905,7 +2299,19 @@ function Sidebar({
 
                   onClick = {async () => {
 
-                    if (window.confirm("Permanently delete ALL deleted conversations? This CANNOT be undone.")) {
+                    const ok = await confirmDialog({
+
+                      title: "Permanently delete all deleted conversations?",
+
+                      message: "This cannot be undone.",
+
+                      confirmLabel: "Delete All Permanently",
+
+                      danger: true,
+
+                    });
+
+                    if (ok) {
 
                       await Promise.all(deletedSessions.map((s) => sessionsAPI.deletePermanent(s.id)));
 
@@ -1931,7 +2337,7 @@ function Sidebar({
 
                     color: "var(--tm-danger)",
 
-                    fontSize: 12,
+                    fontSize: "0.8em",
 
                     cursor: "pointer",
 
@@ -1991,13 +2397,13 @@ function Sidebar({
             {/* Email Header */}
             <div style = {{ padding: "12px 14px", borderBottom: "1px solid rgba(30,28,24,0.08)" }}>
 
-              <div style = {{ fontSize: 11, color: "var(--tm-text-muted)", marginBottom: 2 }}>
+              <div style = {{ fontSize: "0.733em", color: "var(--tm-text-muted)", marginBottom: 2 }}>
 
-                Signed in as
+                {t("signedInAs")}
 
               </div>
 
-              <div style = {{ fontSize: 12, color: "var(--tm-text-strong)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div style = {{ fontSize: "0.8em", color: "var(--tm-text-strong)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
 
                 {user?.email}
 
@@ -2013,7 +2419,7 @@ function Sidebar({
 
               onToggle = {toggleSection}
 
-              label = "Settings"
+              label = {t("settings")}
 
               icon = {
 
@@ -2063,7 +2469,7 @@ function Sidebar({
 
               onToggle = {toggleSection}
 
-              label = "Language"
+              label = {t("language")}
 
               icon = {
 
@@ -2097,7 +2503,7 @@ function Sidebar({
 
               onToggle = {toggleSection}
 
-              label = "Get Help"
+              label = {t("getHelp")}
 
               icon = {
 
@@ -2128,7 +2534,7 @@ function Sidebar({
 
               danger
 
-              label = "Log out"
+              label = {t("logOut")}
 
               onClick = {() => authAPI.logout()}
 
@@ -2153,7 +2559,7 @@ function Sidebar({
 
               danger
 
-              label = "Reset History"
+              label = {t("resetHistory")}
 
               icon = {
 
@@ -2169,11 +2575,17 @@ function Sidebar({
 
               onClick = {async () => {
 
-                const confirmed = window.confirm(
+                const confirmed = await confirmDialog({
 
-                  "⚠️ RESET ACCOUNT HISTORY?\n\nThis will permanently clear:\n• ALL conversations\n• ALL messages\n• ALL analytics/feedback data\n\nYour account, login, and profile will remain.\n\nThis action CANNOT be undone."
+                  title: "Reset account history?",
 
-                );
+                  message: "This will permanently clear:\n• All conversations\n• All messages\n• All analytics and feedback data\n\nYour account, login, and profile will remain.\n\nThis cannot be undone.",
+
+                  confirmLabel: "Reset History",
+
+                  danger: true,
+
+                });
 
                 if (!confirmed) return;
 
@@ -2181,13 +2593,13 @@ function Sidebar({
 
                   await authAPI.resetHistory();
 
-                  alert("Your account history has been reset. Fresh start!");
+                  await alertDialog({ title: "History reset", message: "Your account history has been reset. Fresh start!", icon: "✅" });
 
                   window.location.reload();
 
                 } catch (err) {
 
-                  alert("Failed to reset history. Please try again.");
+                  await alertDialog({ title: "Something went wrong", message: "Failed to reset history. Please try again.", icon: "⚠️" });
 
                 }
 
@@ -2200,7 +2612,7 @@ function Sidebar({
 
               danger
 
-              label = "Delete Account Permanently"
+              label = {t("deleteAccountPermanently")}
 
               icon = {
 
@@ -2222,19 +2634,41 @@ function Sidebar({
 
               onClick = {async () => {
 
-                const confirmed = window.confirm(
+                const confirmed = await confirmDialog({
 
-                  "⚠️ DELETE ACCOUNT PERMANENTLY?\n\nThis will delete:\n• Your account\n• ALL conversations\n• ALL messages\n• ALL data\n\nThis action CANNOT be undone.\n\nType 'DELETE' to confirm."
+                  title: "Delete account permanently?",
 
-                );
+                  message: "This will delete:\n• Your account\n• All conversations\n• All messages\n• All data\n\nThis cannot be undone.",
+
+                  confirmLabel: "Continue",
+
+                  danger: true,
+
+                });
 
                 if (!confirmed) return;
 
-                const typed = window.prompt("Type DELETE to permanently delete your account:");
+                const typed = await promptDialog({
+
+                  title: "Confirm deletion",
+
+                  message: "Type DELETE to permanently delete your account:",
+
+                  placeholder: "DELETE",
+
+                  requiredValue: "DELETE",
+
+                  confirmLabel: "Delete Account",
+
+                  danger: true,
+
+                });
+
+                if (typed === null) return;
 
                 if (typed !== "DELETE") {
 
-                  alert("Account deletion cancelled — you did not type DELETE correctly.");
+                  await alertDialog({ title: "Cancelled", icon: "⚠️", message: "Account deletion cancelled — you did not type DELETE correctly." });
 
                   return;
 
@@ -2244,13 +2678,13 @@ function Sidebar({
 
                   await authAPI.deleteAccount();
 
-                  alert("Your account has been permanently deleted. Goodbye!");
+                  await alertDialog({ title: "Account deleted", icon: "✅", message: "Your account has been permanently deleted. Goodbye!" });
 
                   authAPI.logout();
 
                 } catch (err) {
 
-                  alert("Failed to delete account. Please try again.");
+                  await alertDialog({ title: "Something went wrong", icon: "⚠️", message: "Failed to delete account. Please try again." });
 
                 }
 
@@ -2303,13 +2737,13 @@ function Sidebar({
 
           <div style = {{ flex: 1, minWidth: 0, textAlign: "left" }}>
 
-            <div style = {{ fontSize: 13, fontWeight: 500, color: "var(--tm-text-strong)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div style = {{ fontSize: "0.867em", fontWeight: 500, color: "var(--tm-text-strong)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
 
               {user?.name}
 
             </div>
 
-            <div style = {{ fontSize: 10, color: "var(--tm-text-faint)" }}>{user?.is_admin ? "Admin" : "Free plan"}</div>
+            <div style = {{ fontSize: "0.667em", color: "var(--tm-text-faint)" }}>{user?.is_admin ? "Admin" : t("freePlan")}</div>
 
           </div>
 
@@ -2359,21 +2793,85 @@ function Sidebar({
 
 function AnalyticsPanel({ onClose }) {
 
+  const { t } = useLanguage();
+
   const [data, setData] = useState(null);
 
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  // "7" | "30" | "90" | "custom" — drives which query params get sent
+  const [rangePreset, setRangePreset] = useState("30");
+
+  const [customStart, setCustomStart] = useState("");
+
+  const [customEnd, setCustomEnd] = useState("");
+
+  const [showCustomPicker, setShowCustomPicker] = useState(false);
+
+  const fetchAnalytics = () => {
+
+    setLoading(true);
+
+    const params =
+
+      rangePreset === "custom" && customStart && customEnd
+
+        ? { startDate: customStart, endDate: customEnd }
+
+        : { days: Number(rangePreset) };
 
     analyticsAPI
 
-      .get(30)
+      .get(params)
 
       .then(setData)
 
       .catch(console.error)
 
       .finally(() => setLoading(false));
+
+  };
+
+  useEffect(() => {
+
+    // Custom range only fetches once both dates are actually picked —
+    // avoids firing a request while the person has only chosen a start date
+    if (rangePreset === "custom" && (!customStart || !customEnd)) return;
+
+    fetchAnalytics();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rangePreset, customStart, customEnd]);
+
+  const RANGE_LABELS = {
+
+    "7": "Last 7 days",
+
+    "30": "Last 30 days",
+
+    "90": "Last 90 days",
+
+    "custom": customStart && customEnd ? `${customStart} → ${customEnd}` : "Custom range",
+
+  };
+
+  const rangePickerRef = useRef(null);
+
+  useEffect(() => {
+
+    const handleClickOutside = (e) => {
+
+      if (rangePickerRef.current && !rangePickerRef.current.contains(e.target)) {
+
+        setShowCustomPicker(false);
+
+      }
+
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => document.removeEventListener("mousedown", handleClickOutside);
 
   }, []);
 
@@ -2426,6 +2924,18 @@ function AnalyticsPanel({ onClose }) {
       <svg width = "18" height = "18" viewBox = "0 0 24 24" fill = "none" stroke = "var(--techmart-blue)" strokeWidth = "1.6" strokeLinecap = "round" strokeLinejoin = "round">
 
         <path d = "M13.5 2L6 13H11L10 22L18 10H13L13.5 2Z" />
+
+      </svg>
+
+    ),
+
+    resolution: (
+
+      <svg width = "18" height = "18" viewBox = "0 0 24 24" fill = "none" stroke = "var(--techmart-blue)" strokeWidth = "1.6" strokeLinecap = "round" strokeLinejoin = "round">
+
+        <path d = "M12 3 4 6.5v5c0 4.7 3.2 9 8 10 4.8-1 8-5.3 8-10v-5L12 3Z" />
+
+        <polyline points = "9 12 11 14 15 10" />
 
       </svg>
 
@@ -2558,9 +3068,137 @@ function AnalyticsPanel({ onClose }) {
 
           {dailyData.map((d) => (
 
-            <div key = {d.date} style = {{ flex: 1, textAlign: "center", fontSize: 9, color: "var(--tm-text-faint)" }}>
+            <div key = {d.date} style = {{ flex: 1, textAlign: "center", fontSize: "0.6em", color: "var(--tm-text-faint)" }}>
 
               {formatDateDMY(d.date)}
+
+            </div>
+
+          ))}
+
+        </div>
+
+      </>
+
+    );
+
+  };
+
+  // Vertical bar chart for the 24-hour busiest-hours breakdown. Peak
+  // hour gets a distinct color so it's immediately scannable, same as
+  // any real analytics tool would highlight the standout value.
+  const renderBusiestHours = (hourlyData) => {
+
+    const w = 480;
+
+    const h = 120;
+
+    const topPad = 18;
+
+    const bottomPad = 4;
+
+    const max = Math.max(...hourlyData.map((d) => d.count), 1);
+
+    const barGap = 3;
+
+    const barWidth = hourlyData.length > 0 ? Math.max((w - barGap * (hourlyData.length - 1)) / hourlyData.length, 2) : 0;
+
+    const heightFor = (count) => (count / max) * (h - topPad - bottomPad);
+
+    const peakHour = hourlyData.reduce((best, d) => (d.count > best.count ? d : best), hourlyData[0] || { hour: 0, count: 0 });
+
+    const bars = hourlyData.map((d, i) => {
+
+      const barHeight = heightFor(d.count);
+
+      return {
+
+        x: i * (barWidth + barGap),
+
+        y: h - bottomPad - barHeight,
+
+        height: barHeight,
+
+        ...d,
+
+      };
+
+    });
+
+    // 12-hour format with am/pm, e.g. 0 -> "12am", 13 -> "1pm"
+    const formatHour = (hour) => {
+
+      const period = hour < 12 ? "am" : "pm";
+
+      const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+
+      return `${displayHour}${period}`;
+
+    };
+
+    return (
+
+      <>
+
+        <svg viewBox = {`0 0 ${w} ${h}`} preserveAspectRatio = "none" style = {{ width: "100%", height: 150, display: "block", overflow: "visible" }}>
+
+          {bars.map((b) => (
+
+            <g key = {b.hour}>
+
+              <rect
+
+                x = {b.x}
+
+                y = {b.y}
+
+                width = {barWidth}
+
+                height = {Math.max(b.height, b.count > 0 ? 2 : 0)}
+
+                rx = "2"
+
+                fill = {b.count > 0 && b.hour === peakHour.hour ? "var(--techmart-blue)" : "var(--tm-success)"}
+
+                opacity = {b.count > 0 && b.hour === peakHour.hour ? 1 : 0.75}
+
+              />
+
+              <title>{`${formatHour(b.hour)}: ${b.count} message${b.count === 1 ? "" : "s"}`}</title>
+
+            </g>
+
+          ))}
+
+        </svg>
+
+        <div style = {{ display: "flex", marginTop: 2, gap: 3 }}>
+
+          {hourlyData.map((d, i) => (
+
+            <div
+
+              key = {d.hour}
+
+              style = {{
+
+                flex: 1,
+
+                textAlign: "center",
+
+                fontSize: "0.55em",
+
+                color: "var(--tm-text-faint)",
+
+                // Only label every 3rd hour to avoid crowding 24 labels into one row
+
+                visibility: i % 3 === 0 ? "visible" : "hidden",
+
+              }}
+
+            >
+
+              {formatHour(d.hour)}
 
             </div>
 
@@ -2605,7 +3243,13 @@ function AnalyticsPanel({ onClose }) {
   // same sentiment_distribution array, just a chart instead of a list.
   const renderSentimentDonut = (sentimentData) => {
 
-    const total = sentimentData.reduce((sum, s) => sum + s.count, 0) || 1;
+    // ratedCount is the real number shown in the center label — can
+    // legitimately be 0 when there's no data yet.
+    const ratedCount = sentimentData.reduce((sum, s) => sum + s.count, 0);
+
+    // total is only used for percentage math below — falls back to 1
+    // purely to avoid a 0/0 divide-by-zero, never shown to the user.
+    const total = ratedCount || 1;
 
     const radius = 38;
 
@@ -2746,7 +3390,7 @@ function AnalyticsPanel({ onClose }) {
 
         <text x = "50" y = "47" textAnchor = "middle" fontSize = "17" fontWeight = "650" fill = "var(--tm-text-strong)">
 
-          {total}
+          {ratedCount}
 
         </text>
 
@@ -2848,6 +3492,156 @@ function AnalyticsPanel({ onClose }) {
 
           <div className = "flex items-center gap-3">
 
+            <div ref = {rangePickerRef} style = {{ position: "relative" }}>
+
+              <button
+
+                className = "auth-input"
+
+                style = {{ width: 170, textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, padding: "9px 12px", fontSize: "0.867em", cursor: "pointer" }}
+
+                onClick = {() => setShowCustomPicker((prev) => !prev)}
+
+              >
+
+                <span style = {{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{RANGE_LABELS[rangePreset]}</span>
+
+                <svg width = "10" height = "10" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "3" strokeLinecap = "round" strokeLinejoin = "round" style = {{ flexShrink: 0 }}>
+
+                  <polyline points = "6 9 12 15 18 9" />
+
+                </svg>
+
+              </button>
+
+              {showCustomPicker && (
+
+                <div
+
+                  className = "card"
+
+                  style = {{ position: "absolute", top: "calc(100% + 6px)", right: 0, width: 240, zIndex: 30, padding: 10 }}
+
+                >
+
+                  {["7", "30", "90"].map((preset) => (
+
+                    <button
+
+                      key = {preset}
+
+                      onClick = {() => {
+
+                        setRangePreset(preset);
+
+                        setShowCustomPicker(false);
+
+                      }}
+
+                      style = {{
+
+                        width: "100%",
+
+                        textAlign: "left",
+
+                        padding: "8px 10px",
+
+                        borderRadius: 8,
+
+                        fontSize: "0.867em",
+
+                        border: "none",
+
+                        cursor: "pointer",
+
+                        background: rangePreset === preset ? "var(--techmart-gray-100)" : "transparent",
+
+                        color: "var(--tm-text-strong)",
+
+                        marginBottom: 2,
+
+                      }}
+
+                    >
+
+                      {RANGE_LABELS[preset]}
+
+                    </button>
+
+                  ))}
+
+                  <div style = {{ borderTop: "1px solid var(--tm-border-light)", margin: "6px 0" }} />
+
+                  <div style = {{ fontSize: "0.8em", fontWeight: 600, color: "var(--tm-text-muted)", padding: "2px 10px 6px" }}>Custom range</div>
+
+                  <div style = {{ display: "flex", flexDirection: "column", gap: 6, padding: "0 10px 8px" }}>
+
+                    <input
+
+                      type = "date"
+
+                      value = {customStart}
+
+                      onChange = {(e) => setCustomStart(e.target.value)}
+
+                      className = "auth-input"
+
+                      style = {{ fontSize: "0.8em", padding: "6px 8px" }}
+
+                      max = {customEnd || undefined}
+
+                    />
+
+                    <input
+
+                      type = "date"
+
+                      value = {customEnd}
+
+                      onChange = {(e) => setCustomEnd(e.target.value)}
+
+                      className = "auth-input"
+
+                      style = {{ fontSize: "0.8em", padding: "6px 8px" }}
+
+                      min = {customStart || undefined}
+
+                      max = {new Date().toISOString().slice(0, 10)}
+
+                    />
+
+                    <button
+
+                      onClick = {() => {
+
+                        if (customStart && customEnd) {
+
+                          setRangePreset("custom");
+
+                          setShowCustomPicker(false);
+
+                        }
+
+                      }}
+
+                      disabled = {!customStart || !customEnd}
+
+                      className = "btn-primary text-xs py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+
+                    >
+
+                      Apply
+
+                    </button>
+
+                  </div>
+
+                </div>
+
+              )}
+
+            </div>
+
             <button
 
               className = "btn-primary text-sm px-4 py-2 flex items-center gap-2"
@@ -2918,13 +3712,13 @@ function AnalyticsPanel({ onClose }) {
 
               </svg>
 
-              Export CSV
+              {t("exportCSV")}
 
             </button>
 
             <button className = "btn-primary text-sm px-4 py-2" onClick = {onClose}>
 
-              ❮ Back to Chat
+              ❮ {t("backToChat")}
 
             </button>
 
@@ -2974,7 +3768,7 @@ function AnalyticsPanel({ onClose }) {
                 small corner mark, matching how real analytics dashboards
                 (Stripe, Vercel, Linear Insights) lay out stat cards,
                 rather than centered icon-over-number blocks. */}
-            <div className = "grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className = "grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
 
               {[
 
@@ -2985,6 +3779,8 @@ function AnalyticsPanel({ onClose }) {
                 { label: "Avg Rating", value: data.average_rating ? data.average_rating.toFixed(1) : "N/A", icon: KPI_ICONS.rating, spark: false, wow: null, isRating: true },
 
                 { label: "Avg Response", value: `${Math.round(data.avg_response_time_ms)}ms`, icon: KPI_ICONS.response, spark: false, wow: null },
+
+                { label: "Resolution Rate", value: data.resolution_rate !== null && data.resolution_rate !== undefined ? `${data.resolution_rate}%` : "N/A", icon: KPI_ICONS.resolution, spark: false, wow: null },
 
               ].map((kpi) => (
 
@@ -3187,6 +3983,19 @@ function AnalyticsPanel({ onClose }) {
 
             )}
 
+            {/* Busiest Hours — full width, shows when people actually message in */}
+            {data.busiest_hours && data.busiest_hours.some((h) => h.count > 0) && (
+
+              <div className = "card p-4 mb-4">
+
+                <h3 className = "text-sm font-medium mb-4 text-[var(--tm-text-strong)]">Busiest Hours</h3>
+
+                {renderBusiestHours(data.busiest_hours)}
+
+              </div>
+
+            )}
+
           </>
 
         )}
@@ -3201,7 +4010,11 @@ function AnalyticsPanel({ onClose }) {
 
 // This is the main chat page component — everything above this point
 // was just helper functions and smaller pieces used inside it.
-export default function ChatPage() {
+function ChatPageInner() {
+
+  const { confirmDialog, alertDialog } = useDialog();
+
+  const { t, language } = useLanguage();
 
   const router = useRouter();
 
@@ -3221,6 +4034,8 @@ export default function ChatPage() {
 
   const [showFeedback, setShowFeedback] = useState(false);
 
+  const [showBugReport, setShowBugReport] = useState(false);
+
   const [showAnalytics, setShowAnalytics] = useState(false);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -3228,6 +4043,24 @@ export default function ChatPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const [fontSize, setFontSize] = useState(15);
+
+  useEffect(() => {
+
+    // Setting the root font-size scales everything relative to it:
+    // Tailwind's rem-based classes (text-xs, text-sm, etc.) AND our
+    // own em-based inline fontSize values throughout the app, all in
+    // one place, instead of needing to touch every element individually.
+    document.documentElement.style.fontSize = `${fontSize}px`;
+
+    return () => {
+
+      // Reset to the browser default if this component ever unmounts,
+      // so leaving the chat page doesn't leave other pages scaled
+      document.documentElement.style.fontSize = "";
+
+    };
+
+  }, [fontSize]);
 
   const [selectedLanguage, setSelectedLanguage] = useState("English");
 
@@ -3261,7 +4094,7 @@ export default function ChatPage() {
 
       if (file.size > maxSize) {
 
-        alert(`${file.name} is too large. Max 10MB.`);
+        await alertDialog({ title: "File too large", icon: "⚠️", message: `${file.name} is too large. Max 10MB.` });
 
         continue;
 
@@ -3356,7 +4189,7 @@ export default function ChatPage() {
 
         console.error("File read error:", err);
 
-        alert(`Could not read ${file.name}`);
+        await alertDialog({ title: "Could not read file", icon: "⚠️", message: `Could not read ${file.name}` });
 
       }
 
@@ -3400,7 +4233,7 @@ export default function ChatPage() {
 
     if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
 
-      alert("Voice input only works in Google Chrome. Please use Chrome.");
+      alertDialog({ title: "Not supported", icon: "⚠️", message: "Voice input only works in Google Chrome. Please use Chrome." });
 
       return;
 
@@ -3450,11 +4283,11 @@ export default function ChatPage() {
 
         if (event.error === "not-allowed") {
 
-          alert("Microphone blocked! Fix it:\n1. Click 🔒 in address bar\n2. Set Microphone → Allow\n3. Refresh page");
+          alertDialog({ title: "Microphone blocked", icon: "🎤", message: "Fix it:\n1. Click 🔒 in address bar\n2. Set Microphone → Allow\n3. Refresh page" });
 
         } else if (event.error === "no-speech") {
 
-          alert("No speech detected. Please try again and speak clearly.");
+          alertDialog({ title: "No speech detected", icon: "🎤", message: "Please try again and speak clearly." });
 
         }
 
@@ -3472,7 +4305,7 @@ export default function ChatPage() {
 
       setIsListening(false);
 
-      alert("Voice error: " + err.message);
+      alertDialog({ title: "Voice error", icon: "⚠️", message: err.message });
 
     }
 
@@ -3696,7 +4529,12 @@ export default function ChatPage() {
 
     try {
 
-      const res = await chatAPI.sendMessage(fullMessage, currentSessionId);
+      // Only send an explicit language override for non-English UI
+      // languages — for English, leave it null so the backend's
+      // existing auto-detect-from-message behavior is unaffected
+      const languageOverride = language === "en-US" || language === "en-GB" ? null : LANGUAGE_NAMES[language];
+
+      const res = await chatAPI.sendMessage(fullMessage, currentSessionId, languageOverride);
 
       if (!currentSessionId) {
 
@@ -3823,17 +4661,17 @@ export default function ChatPage() {
 
   const QUICK_QUESTIONS = [
 
-    "What is your return policy?",
+    t("suggestionReturnPolicy"),
 
-    "My laptop won't turn on",
+    t("suggestionLaptopWontTurnOn"),
 
-    "Tell me about the UltraBook Pro 15",
+    t("suggestionUltraBook"),
 
-    "I want to cancel my subscription",
+    t("suggestionCancelSubscription"),
 
-    "Track my order",
+    t("suggestionTrackOrder"),
 
-    "TechMart Care pricing",
+    t("suggestionCarePricing"),
 
   ];
 
@@ -3975,6 +4813,8 @@ export default function ChatPage() {
 
           }}
 
+          onOpenBugReport = {() => setShowBugReport(true)}
+
         />
 
         {/* Main Content */}
@@ -4022,7 +4862,7 @@ export default function ChatPage() {
 
               </div>
 
-              <div className = "text-xs text-[var(--tm-text-faint)]">{showAnalytics ? "Last 30 days" : "Powered by Multi-Agent AI + RAG"}</div>
+              <div className = "text-xs text-[var(--tm-text-faint)]">{showAnalytics ? t("last30Days") : t("poweredByMultiAgentRAG")}</div>
 
             </div>
 
@@ -4034,7 +4874,7 @@ export default function ChatPage() {
 
                 onClick = {() => setShowFeedback(true)}
 
-                data-tooltip = "Rate this conversation"
+                data-tooltip = {t("rateThisConversation")}
 
               >
 
@@ -4080,7 +4920,7 @@ export default function ChatPage() {
 
                 }}
 
-                data-tooltip = "Export conversation"
+                data-tooltip = {t("exportConversation")}
 
               >
 
@@ -4107,11 +4947,15 @@ export default function ChatPage() {
 
                 onClick = {async () => {
 
-                  const confirmed = window.confirm(
+                  const confirmed = await confirmDialog({
 
-                    "Escalate to a human agent?\n\nA TechMart specialist will contact you within 2 business hours."
+                    title: "Escalate to a human agent?",
 
-                  );
+                    message: "A TechMart specialist will contact you within 2 business hours.",
+
+                    confirmLabel: "Escalate",
+
+                  });
 
                   if (confirmed) {
 
@@ -4141,15 +4985,19 @@ export default function ChatPage() {
 
                       setMessages(history.messages || []);
 
-                      alert(
+                      await alertDialog({
 
-                        `✅ Escalated Successfully!\n\nReference: ${data.reference}\n\nA human agent will contact you at your registered email within 2 business hours.\n\nOr call: 1-800-TECHMART`
+                        title: "Escalated successfully",
 
-                      );
+                        icon: "✅",
+
+                        message: `Reference: ${data.reference}\n\nA human agent will contact you at your registered email within 2 business hours.\n\nOr call: 1-800-TECHMART`,
+
+                      });
 
                     } catch (err) {
 
-                      alert("Escalation failed. Please call 1-800-TECHMART directly.");
+                      await alertDialog({ title: "Escalation failed", icon: "⚠️", message: "Please call 1-800-TECHMART directly." });
 
                     }
 
@@ -4186,7 +5034,7 @@ export default function ChatPage() {
 
                 className = "icon-btn"
 
-                style = {{ fontSize: 15, fontWeight: 650, padding: "0 4px", lineHeight: 1 }}
+                style = {{ fontSize: "1em", fontWeight: 650, padding: "0 4px", lineHeight: 1 }}
 
                 title = "Decrease font size"
 
@@ -4195,7 +5043,7 @@ export default function ChatPage() {
 
               </button>
 
-              <span style = {{ fontSize: 10, color: "var(--tm-text-faint)", minWidth: 24, textAlign: "center" }}>
+              <span style = {{ fontSize: "0.667em", color: "var(--tm-text-faint)", minWidth: 24, textAlign: "center" }}>
 
                 {fontSize}px
 
@@ -4207,7 +5055,7 @@ export default function ChatPage() {
 
                 className = "icon-btn"
 
-                style = {{ fontSize: 15, fontWeight: 650, padding: "0 4px", lineHeight: 1 }}
+                style = {{ fontSize: "1em", fontWeight: 650, padding: "0 4px", lineHeight: 1 }}
 
                 title = "Increase font size"
 
@@ -4225,7 +5073,7 @@ export default function ChatPage() {
 
               className = "icon-tooltip-btn"
 
-              data-tooltip = "Toggle dark mode"
+              data-tooltip = {t("toggleDarkMode")}
 
             >
 
@@ -4302,7 +5150,7 @@ export default function ChatPage() {
             <>
 
               {/* Messages Area */}
-              <div className = "flex-1 overflow-y-auto px-4 py-6" style = {{ fontSize: `${fontSize}px` }}>
+              <div className = "flex-1 overflow-y-auto px-4 py-6">
 
                 {messages.length === 0 && (
 
@@ -4322,7 +5170,7 @@ export default function ChatPage() {
 
                     >
 
-                      Welcome to TechMart AI Support
+                      {t("welcomeTitle")}
 
                     </h2>
 
@@ -4334,7 +5182,7 @@ export default function ChatPage() {
 
                     >
 
-                      I'm here to help with billing, technical issues, product info, and more. Ask me anything!
+                      {t("welcomeSubtitle")}
 
                     </p>
 
@@ -4468,7 +5316,7 @@ export default function ChatPage() {
 
                     rows = {1}
 
-                    placeholder = "Type your message... (Enter to send, Shift+Enter for newline)"
+                    placeholder = {t("typeYourMessage")}
 
                     value = {input}
 
@@ -4604,7 +5452,7 @@ export default function ChatPage() {
 
                 </div>
 
-                <p className = "text-center text-xs text-[var(--tm-text-faint)] mt-2">TechMart AI Support · Powered by Multi-Agent RAG System</p>
+                <p className = "text-center text-xs text-[var(--tm-text-faint)] mt-2">{t("footerTagline")}</p>
 
               </div>
 
@@ -4619,7 +5467,23 @@ export default function ChatPage() {
       {/* Feedback Modal */}
       {showFeedback && <FeedbackModal sessionId = {currentSessionId} onClose = {() => setShowFeedback(false)} />}
 
+      {showBugReport && <BugReportModal onClose = {() => setShowBugReport(false)} />}
+
     </>
+
+  );
+
+}
+
+export default function ChatPage() {
+
+  return (
+
+    <DialogProvider>
+
+      <ChatPageInner />
+
+    </DialogProvider>
 
   );
 

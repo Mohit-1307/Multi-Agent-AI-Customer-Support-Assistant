@@ -6,31 +6,51 @@ the main chat endpoint, feedback, analytics, admin knowledge-base
 management, support tickets, escalation, and notification status checks.
 """
 
+import logging
+import re
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from google.oauth2 import id_token as google_id_token
+from google.auth.transport import requests as google_requests
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from ..agents.llm_client import get_llm_client
 from ..agents.router import get_router
 from ..api.auth import (
 
     create_access_token,
 
+    create_email_verification_token,
+
+    generate_otp_code,
+
+    generate_reset_token,
+
     get_admin_user,
 
     get_current_user,
 
+    hash_otp_code,
+
     hash_password,
+
+    hash_reset_token,
+
+    verify_email_verification_token,
+
+    verify_otp_code,
 
     verify_password,
 
 )
 from ..config import settings
-from ..database.db import (ChatSession, Feedback, KnowledgeBaseDoc, Message, SupportTicket, User, get_db)
-from ..models.schemas import (AnalyticsResponse, AgentStat, ChatRequest, ChatResponse, FeedbackRequest, FeedbackOut, IntentStat, KBDocOut, KBRebuildResponse, LoginRequest, 
-                                MessageOut, RegisterRequest, SentimentStat, SessionDetailOut, SessionOut, SuccessResponse, SummaryResponse, TokenResponse, UserOut)
+from ..database.db import (BugReport, ChatSession, Feedback, KnowledgeBaseDoc, Message, OTPCode, PasswordResetToken, SupportTicket, User, get_db)
+from ..models.schemas import (AnalyticsResponse, AgentStat, BugReportOut, BugReportRequest, ChatRequest, ChatResponse, DocContentOut, DocOut, EmailVerifiedResponse, FeedbackRequest, FeedbackOut, ForgotPasswordRequest, GenericMessageResponse,
+                                GoogleAuthRequest, IntentStat, KBDocOut, KBRebuildResponse, LoginRequest, MessageOut, OTPSentResponse, RegisterRequest, ResetPasswordRequest, SendOTPRequest,
+                                SentimentStat, SessionDetailOut, SessionOut, SuccessResponse, SummaryResponse, TokenResponse, TranslateRequest, TranslateResponse, UpdatePhoneRequest, UserOut, VerifyOTPRequest)
 
 from ..rag.retriever import get_retriever
 
@@ -41,6 +61,12 @@ from .email_service import (
     send_ticket_created_email,
 
     send_feedback_thank_you,
+
+    send_otp_email,
+
+    send_password_reset_email,
+
+    send_email,
 
     is_email_configured,
 
@@ -56,6 +82,8 @@ from .whatsapp_service import (
 
 )
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 
@@ -67,6 +95,14 @@ router = APIRouter()
 # correctly across multiple server processes — fine for a single-instance
 # deployment, but wouldn't scale to a multi-worker/multi-server setup.
 _message_counts = defaultdict(list)
+
+# Keyed by email, holds the UTC timestamp of the last OTP request — used to
+# enforce settings.OTP_RESEND_COOLDOWN_SECONDS between requests for the same address
+_otp_last_sent = {}
+
+# Keyed by email, holds the UTC timestamp of the last password-reset
+# email sent — enforces settings.PASSWORD_RESET_RESEND_COOLDOWN_SECONDS
+_reset_last_sent = {}
 
 
 def check_rate_limit(user_id: str, max_messages: int = 20, window_minutes: int = 1) -> bool:
@@ -95,7 +131,12 @@ def check_rate_limit(user_id: str, max_messages: int = 20, window_minutes: int =
 @router.post("/auth/register", response_model = TokenResponse, tags = ["Auth"])
 async def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     
-    "Register a new user account."
+    "Register a new user account with email + password. Requires an otp_token proving this email was just confirmed via /auth/verify-otp."
+
+    # Validates the token's signature/expiry AND that it was issued for this
+    # exact email — without this, anyone could register an account using an
+    # email address they don't actually control.
+    verify_email_verification_token(payload.otp_token, payload.email)
 
     if db.query(User).filter(User.email == payload.email).first():
 
@@ -109,7 +150,11 @@ async def register(payload: RegisterRequest, db: Session = Depends(get_db)):
 
         password_hash = hash_password(payload.password),
 
-        phone = payload.phone
+        phone = payload.phone,
+
+        auth_provider = "password",
+
+        is_verified = True
 
     )
 
@@ -131,9 +176,256 @@ async def login(payload: LoginRequest, db: Session = Depends(get_db)):
 
     user = db.query(User).filter(User.email == payload.email).first()
 
-    if not user or not verify_password(payload.password, user.password_hash):
+    # user.password_hash can be None for accounts created via Google Sign-In —
+    # verify_password would error on a None hash, so check that case explicitly first
+    if not user or not user.password_hash or not verify_password(payload.password, user.password_hash):
+
+        if user and not user.password_hash:
+
+            raise HTTPException(
+
+                status_code = 401,
+
+                detail = "This account uses Google Sign-In. Please log in with Google, or use 'Sign in with a code' to set a password."
+
+            )
 
         raise HTTPException(status_code = 401, detail = "Invalid email or password")
+
+    token = create_access_token({"sub": user.id})
+
+    return TokenResponse(access_token = token, user = UserOut.model_validate(user))
+
+
+@router.post("/auth/google", response_model = TokenResponse, tags = ["Auth"])
+async def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
+
+    "Login or register using a Google Sign-In ID token from the frontend."
+
+    if not settings.GOOGLE_CLIENT_ID:
+
+        raise HTTPException(status_code = 500, detail = "Google Sign-In is not configured on the server.")
+
+    try:
+
+        # Verifies the token's signature, expiry, and audience against Google's
+        # public keys — raises ValueError if the token is invalid or tampered with
+        idinfo = google_id_token.verify_oauth2_token(
+
+            payload.id_token, google_requests.Request(), settings.GOOGLE_CLIENT_ID
+
+        )
+
+    except ValueError as e:
+
+        raise HTTPException(status_code = 401, detail = "Invalid Google token") from e
+
+    google_sub = idinfo.get("sub")
+
+    email = idinfo.get("email")
+
+    email_verified = idinfo.get("email_verified", False)
+
+    name = idinfo.get("name") or (email.split("@")[0] if email else "TechMart User")
+
+    if not google_sub or not email:
+
+        raise HTTPException(status_code = 401, detail = "Google token missing required fields")
+
+    if not email_verified:
+
+        raise HTTPException(status_code = 401, detail = "Google account email is not verified")
+
+    # Look up first by Google ID (returning user), then by email (existing
+    # password/OTP account linking a Google identity for the first time)
+    user = db.query(User).filter(User.google_id == google_sub).first()
+
+    if not user:
+
+        user = db.query(User).filter(User.email == email).first()
+
+        if user:
+
+            # Link the Google identity to the existing account
+            user.google_id = google_sub
+
+            user.is_verified = True
+
+        else:
+
+            user = User(
+
+                name = name,
+
+                email = email,
+
+                password_hash = None,
+
+                google_id = google_sub,
+
+                auth_provider = "google",
+
+                is_verified = True
+
+            )
+
+            db.add(user)
+
+    db.commit()
+
+    db.refresh(user)
+
+    token = create_access_token({"sub": user.id})
+
+    return TokenResponse(access_token = token, user = UserOut.model_validate(user))
+
+
+@router.post("/auth/send-otp", response_model = OTPSentResponse, tags = ["Auth"])
+async def send_otp(payload: SendOTPRequest, db: Session = Depends(get_db)):
+
+    "Email a one-time passcode for logging in or registering with this address."
+
+    if not is_email_configured():
+
+        raise HTTPException(status_code = 500, detail = "Email delivery is not configured on the server.")
+
+    now = datetime.utcnow()
+
+    last_sent = _otp_last_sent.get(payload.email)
+
+    if last_sent and (now - last_sent).total_seconds() < settings.OTP_RESEND_COOLDOWN_SECONDS:
+
+        wait_for = int(settings.OTP_RESEND_COOLDOWN_SECONDS - (now - last_sent).total_seconds())
+
+        raise HTTPException(status_code = 429, detail = f"Please wait {wait_for}s before requesting another code.")
+
+    # Invalidate any still-outstanding codes for this email so only the newest one works
+    db.query(OTPCode).filter(OTPCode.email == payload.email, OTPCode.is_used == False).update({"is_used": True})
+
+    code = generate_otp_code()
+
+    otp_row = OTPCode(
+
+        email = payload.email,
+
+        code_hash = hash_otp_code(code),
+
+        expires_at = now + timedelta(minutes = settings.OTP_EXPIRE_MINUTES)
+
+    )
+
+    db.add(otp_row)
+
+    db.commit()
+
+    sent = send_otp_email(payload.email, code, settings.OTP_EXPIRE_MINUTES)
+
+    if not sent:
+
+        raise HTTPException(status_code = 502, detail = "Failed to send verification email. Please try again.")
+
+    _otp_last_sent[payload.email] = now
+
+    return OTPSentResponse(message = f"Verification code sent to {payload.email}", expires_in_minutes = settings.OTP_EXPIRE_MINUTES)
+
+
+@router.post("/auth/verify-otp", tags = ["Auth"])
+async def verify_otp(payload: VerifyOTPRequest, db: Session = Depends(get_db)):
+
+    """
+    Verify a one-time passcode.
+
+    intent="login": logs in an existing account, or auto-registers a new
+    passwordless account if none exists yet (returns TokenResponse).
+
+    intent="register": only confirms the person controls this email address
+    — does NOT create an account. Returns a short-lived otp_token the
+    frontend must pass to /auth/register along with a chosen password to
+    actually create the account (returns EmailVerifiedResponse).
+    """
+
+    otp_row = (
+
+        db.query(OTPCode)
+
+        .filter(OTPCode.email == payload.email, OTPCode.is_used == False)
+
+        .order_by(OTPCode.created_at.desc())
+
+        .first()
+
+    )
+
+    if not otp_row:
+
+        raise HTTPException(status_code = 400, detail = "No active code for this email. Please request a new one.")
+
+    if datetime.utcnow() > otp_row.expires_at:
+
+        raise HTTPException(status_code = 400, detail = "This code has expired. Please request a new one.")
+
+    if otp_row.attempts >= settings.OTP_MAX_ATTEMPTS:
+
+        raise HTTPException(status_code = 400, detail = "Too many incorrect attempts. Please request a new code.")
+
+    if not verify_otp_code(payload.code, otp_row.code_hash):
+
+        otp_row.attempts += 1
+
+        db.commit()
+
+        raise HTTPException(status_code = 400, detail = "Incorrect code. Please try again.")
+
+    otp_row.is_used = True
+
+    db.commit()
+
+    if payload.intent == "register":
+
+        # Ownership of the email is now proven, but no account exists yet —
+        # hand back a narrow, short-lived token for the follow-up /auth/register call
+        if db.query(User).filter(User.email == payload.email).first():
+
+            raise HTTPException(status_code = 400, detail = "Email already registered. Please log in instead.")
+
+        return EmailVerifiedResponse(
+
+            message = "Email verified. You can now set a password to finish creating your account.",
+
+            email = payload.email,
+
+            otp_token = create_email_verification_token(payload.email)
+
+        )
+
+    # intent == "login" — existing OTP-only login/auto-register behavior
+    user = db.query(User).filter(User.email == payload.email).first()
+
+    if not user:
+
+        user = User(
+
+            name = payload.name or payload.email.split("@")[0],
+
+            email = payload.email,
+
+            password_hash = None,
+
+            auth_provider = "otp",
+
+            is_verified = True
+
+        )
+
+        db.add(user)
+
+    else:
+
+        user.is_verified = True
+
+    db.commit()
+
+    db.refresh(user)
 
     token = create_access_token({"sub": user.id})
 
@@ -146,6 +438,378 @@ async def get_me(current_user: User = Depends(get_current_user)):
     "Return the currently logged-in user's profile."
 
     return current_user
+
+
+@router.patch("/auth/phone", response_model = UserOut, tags = ["Auth"])
+async def update_phone(payload: UpdatePhoneRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+
+    "Set or update the logged-in user's phone number — used for WhatsApp notifications. Optional; pass null to clear it."
+
+    current_user.phone = payload.phone
+
+    db.commit()
+
+    db.refresh(current_user)
+
+    return current_user
+
+
+@router.post("/auth/forgot-password", response_model = GenericMessageResponse, tags = ["Auth"])
+async def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+
+    """
+    Request a password reset link by email.
+
+    Always returns the same generic success message whether or not an
+    account exists for this email — this prevents the endpoint being
+    used to check which emails have accounts (email enumeration).
+    """
+
+    generic_response = GenericMessageResponse(
+
+        message = "If an account exists for this email, a password reset link has been sent."
+
+    )
+
+    if not is_email_configured():
+
+        # Still return the generic message — don't leak server config
+        # state to the caller, but log it so it's visible to the operator
+        logger.error("Password reset requested but email is not configured on the server.")
+
+        return generic_response
+
+    user = db.query(User).filter(User.email == payload.email).first()
+
+    if not user:
+
+        return generic_response
+
+    now = datetime.utcnow()
+
+    last_sent = _reset_last_sent.get(payload.email)
+
+    if last_sent and (now - last_sent).total_seconds() < settings.PASSWORD_RESET_RESEND_COOLDOWN_SECONDS:
+
+        # Still return the generic success message so this can't be used
+        # to distinguish "no account" from "you're on cooldown"
+        return generic_response
+
+    # Invalidate any still-outstanding reset tokens for this email
+    db.query(PasswordResetToken).filter(PasswordResetToken.email == payload.email, PasswordResetToken.is_used == False).update({"is_used": True})
+
+    raw_token = generate_reset_token()
+
+    reset_row = PasswordResetToken(
+
+        email = payload.email,
+
+        token_hash = hash_reset_token(raw_token),
+
+        expires_at = now + timedelta(minutes = settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES)
+
+    )
+
+    db.add(reset_row)
+
+    db.commit()
+
+    reset_url = f"{settings.FRONTEND_URL.rstrip('/')}/reset-password?token={raw_token}"
+
+    sent = send_password_reset_email(payload.email, reset_url, settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES)
+
+    if sent:
+
+        _reset_last_sent[payload.email] = now
+
+    else:
+
+        logger.error(f"Failed to send password reset email to {payload.email}")
+
+    return generic_response
+
+
+@router.post("/auth/reset-password", response_model = GenericMessageResponse, tags = ["Auth"])
+async def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+
+    "Reset a password using the token from the emailed reset link."
+
+    token_hash = hash_reset_token(payload.token)
+
+    reset_row = db.query(PasswordResetToken).filter(
+
+        PasswordResetToken.token_hash == token_hash,
+
+        PasswordResetToken.is_used == False
+
+    ).first()
+
+    if not reset_row:
+
+        raise HTTPException(status_code = 400, detail = "This reset link is invalid or has already been used. Please request a new one.")
+
+    if datetime.utcnow() > reset_row.expires_at:
+
+        raise HTTPException(status_code = 400, detail = "This reset link has expired. Please request a new one.")
+
+    user = db.query(User).filter(User.email == reset_row.email).first()
+
+    if not user:
+
+        raise HTTPException(status_code = 400, detail = "This reset link is no longer valid.")
+
+    user.password_hash = hash_password(payload.new_password)
+
+    # A user resetting a password via email has, by definition, just
+    # proven they control that inbox — mark it verified too, same as
+    # the OTP-registration flow does.
+    user.is_verified = True
+
+    reset_row.is_used = True
+
+    db.commit()
+
+    return GenericMessageResponse(message = "Your password has been reset. You can now log in with your new password.")
+
+
+@router.post("/translate", response_model = TranslateResponse, tags = ["Chat"])
+async def translate_texts(payload: TranslateRequest, current_user: User = Depends(get_current_user)):
+
+    """
+    Translate a batch of short strings (typically chat session titles)
+    into the given target language. Used by the frontend when the user
+    switches the UI language, so their existing chat titles read
+    naturally in the new language instead of staying in whatever
+    language they were originally generated in.
+    """
+
+    if not payload.texts:
+
+        return TranslateResponse(translations = [])
+
+    llm = get_llm_client()
+
+    # Numbered list in, numbered list out — keeps the LLM's output in
+    # the same order as the input even for short/ambiguous strings,
+    # which a plain newline-joined list can lose track of.
+    numbered_input = "\n".join(f"{i + 1}. {text}" for i, text in enumerate(payload.texts))
+
+    system_prompt = (
+
+        f"You are a translation engine. Translate each numbered line into {payload.target_language}. "
+
+        f"Return ONLY the translated lines, each on its own line, in the exact same numbered format "
+
+        f"(e.g. '1. translated text'). Do not add any explanation, preamble, or extra text. "
+
+        f"Keep product names and brand names (like 'TechMart', 'UltraBook Pro 15') untranslated. "
+
+        f"If a line is already in {payload.target_language}, return it unchanged."
+
+    )
+
+    try:
+
+        raw_response = await llm.chat(
+
+            messages = [{"role": "user", "content": numbered_input}],
+
+            system = system_prompt
+
+        )
+
+        # Parse "N. text" lines back into a plain list, keyed by their
+        # original position — falls back to the original text for any
+        # line the model dropped or reordered unexpectedly
+        translated_by_index = {}
+
+        for line in raw_response.strip().split("\n"):
+
+            line = line.strip()
+
+            if not line:
+
+                continue
+
+            match = re.match(r"^(\d+)\.\s*(.*)$", line)
+
+            if match:
+
+                idx = int(match.group(1)) - 1
+
+                translated_by_index[idx] = match.group(2).strip()
+
+        translations = [
+
+            translated_by_index.get(i, payload.texts[i]) for i in range(len(payload.texts))
+
+        ]
+
+        return TranslateResponse(translations = translations)
+
+    except Exception as e:
+
+        logger.error(f"Translation failed: {e}")
+
+        # Fail soft — return the original text untranslated rather than
+        # erroring out and breaking the chat list
+        return TranslateResponse(translations = payload.texts)
+
+
+# ------------------------------------------------------------------
+#  DOCUMENTATION
+#
+# Serves the plain-text versions of the same files used to build the
+# RAG knowledge base (backend/../knowledge_base/*.txt), so logged-in
+# users can read the underlying policies/guides directly in-app
+# instead of only getting AI-summarized answers about them.
+# ------------------------------------------------------------------
+
+# id -> (filename, title, description). Order here is the display order.
+_DOC_CATALOG = [
+
+    ("faq", "faq.txt", "Frequently Asked Questions", "Common questions about orders, accounts, and support."),
+
+    ("products", "products.txt", "Product Catalog", "Full lineup of TechMart Electronics products and specs."),
+
+    ("pricing", "pricing.txt", "Pricing & Subscription Plans", "Current pricing for products, plans, and TechMart Care."),
+
+    ("shipping_policy", "shipping_policy.txt", "Shipping Policy", "Delivery timelines, carriers, and shipping costs."),
+
+    ("refund_policy", "refund_policy.txt", "Refund & Return Policy", "How returns, refunds, and exchanges work."),
+
+    ("warranty", "warranty.txt", "Warranty Policy", "What's covered, for how long, and how to make a claim."),
+
+    ("installation_guide", "installation_guide.txt", "Installation Guide & Troubleshooting", "Setup steps and fixes for common issues."),
+
+    ("user_manual", "user_manual.txt", "User Manual & Maintenance Guide", "Day-to-day usage and maintenance instructions."),
+
+]
+
+_DOC_CATALOG_BY_ID = {doc_id: (filename, title, description) for doc_id, filename, title, description in _DOC_CATALOG}
+
+
+@router.get("/docs", response_model = List[DocOut], tags = ["Documentation"])
+async def list_docs(_: User = Depends(get_current_user)):
+
+    "List all in-app documentation pages available to read."
+
+    return [
+
+        DocOut(id = doc_id, title = title, description = description)
+
+        for doc_id, _filename, title, description in _DOC_CATALOG
+
+    ]
+
+
+@router.get("/docs/{doc_id}", response_model = DocContentOut, tags = ["Documentation"])
+async def get_doc(doc_id: str, _: User = Depends(get_current_user)):
+
+    "Get the full text content of a single documentation page."
+
+    entry = _DOC_CATALOG_BY_ID.get(doc_id)
+
+    if not entry:
+
+        raise HTTPException(status_code = 404, detail = "Documentation page not found.")
+
+    filename, title, _description = entry
+
+    file_path = settings.KNOWLEDGE_BASE_DIR / filename
+
+    if not file_path.exists():
+
+        raise HTTPException(status_code = 404, detail = "This documentation page's content file is missing on the server.")
+
+    content = file_path.read_text(encoding = "utf-8", errors = "replace")
+
+    return DocContentOut(id = doc_id, title = title, content = content)
+
+
+# ------------------------------------------------------------------
+#  BUG REPORTS
+# ------------------------------------------------------------------
+@router.post("/bug-reports", response_model = BugReportOut, tags = ["Support"])
+async def submit_bug_report(payload: BugReportRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+
+    "Submit a bug report from the Get Help menu."
+
+    report = BugReport(
+
+        user_id = current_user.id,
+
+        title = payload.title,
+
+        description = payload.description,
+
+        steps_to_reproduce = payload.steps_to_reproduce,
+
+        page_url = payload.page_url,
+
+    )
+
+    db.add(report)
+
+    db.commit()
+
+    db.refresh(report)
+
+    # Best-effort email notification to the support team — a failed
+    # notification shouldn't fail the actual bug report submission
+    if is_email_configured():
+
+        try:
+
+            support_email = settings.SUPPORT_EMAIL or settings.SMTP_USER
+
+            body_lines = [
+
+                f"New bug report from {current_user.name} ({current_user.email})",
+
+                "",
+
+                f"Title: {payload.title}",
+
+                "",
+
+                f"Description:\n{payload.description}",
+
+            ]
+
+            if payload.steps_to_reproduce:
+
+                body_lines.append(f"\nSteps to reproduce:\n{payload.steps_to_reproduce}")
+
+            if payload.page_url:
+
+                body_lines.append(f"\nPage: {payload.page_url}")
+
+            send_email(support_email, f"[Bug Report] {payload.title}", "\n".join(body_lines))
+
+        except Exception as e:
+
+            logger.error(f"Failed to send bug report notification email: {e}")
+
+    return report
+
+
+@router.get("/bug-reports", response_model = List[BugReportOut], tags = ["Support"])
+async def list_my_bug_reports(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+
+    "List bug reports submitted by the current user."
+
+    return (
+
+        db.query(BugReport)
+
+        .filter(BugReport.user_id == current_user.id)
+
+        .order_by(BugReport.created_at.desc())
+
+        .all()
+
+    )
 
 
 # ------------------------------------------------------------------
@@ -369,7 +1033,7 @@ async def chat(payload: ChatRequest,current_user: User = Depends(get_current_use
     db.commit()
 
     # Step 4: Route the message through the full agent system to get a reply
-    result = await router_obj.route(payload.message, history)
+    result = await router_obj.route(payload.message, history, preferred_language = payload.language)
 
     elapsed_ms = time.time() * 1000 - start_ms
 
@@ -664,8 +1328,6 @@ async def get_session_summary(session_id: str, current_user: User = Depends(get_
 
     )
 
-    from ..agents.llm_client import get_llm_client
-
     llm = get_llm_client()
 
     summary = await llm.complete(prompt, max_tokens = 200)
@@ -744,11 +1406,53 @@ async def submit_feedback(payload: FeedbackRequest, current_user: User = Depends
 #  ANALYTICS DASHBOARD  (Optional/Bonus Feature)
 # ------------------------------------------------------------------
 @router.get("/analytics", response_model = AnalyticsResponse, tags = ["Analytics"])
-async def get_analytics(days: int = 30, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    
-    "Return usage analytics: totals, average rating/response time, and breakdowns by agent, intent, and sentiment. Admins see data for all users; regular users only see their own."
+async def get_analytics(
 
-    since = datetime.utcnow() - timedelta(days = days)
+    days: int = 30,
+
+    start_date: Optional[str] = None,
+
+    end_date: Optional[str] = None,
+
+    current_user: User = Depends(get_current_user),
+
+    db: Session = Depends(get_db)
+
+):
+    
+    """
+    Return usage analytics: totals, average rating/response time, and
+    breakdowns by agent, intent, and sentiment. Admins see data for all
+    users; regular users only see their own.
+
+    Date range: pass either `days` (a rolling window ending now, e.g.
+    days=7/30/90 — the default), or both `start_date` and `end_date`
+    (ISO format "YYYY-MM-DD") for a custom range. When both are given,
+    start_date/end_date take priority over days.
+    """
+
+    if start_date and end_date:
+
+        try:
+
+            since = datetime.strptime(start_date, "%Y-%m-%d")
+
+            # Include the entire end day, not just midnight at its start
+            until = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days = 1) - timedelta(seconds = 1)
+
+        except ValueError:
+
+            raise HTTPException(status_code = 400, detail = "start_date and end_date must be in YYYY-MM-DD format.")
+
+        if since > until:
+
+            raise HTTPException(status_code = 400, detail = "start_date must be before end_date.")
+
+    else:
+
+        since = datetime.utcnow() - timedelta(days = days)
+
+        until = datetime.utcnow()
 
     if current_user.is_admin:
 
@@ -779,9 +1483,9 @@ async def get_analytics(days: int = 30, current_user: User = Depends(get_current
 
         feedback_q = db.query(Feedback).filter(Feedback.user_id == current_user.id)
 
-    total_conversations = session_q.filter(ChatSession.created_at >= since).count()
+    total_conversations = session_q.filter(ChatSession.created_at >= since, ChatSession.created_at <= until).count()
 
-    total_messages = message_q.filter(Message.timestamp >= since).count()
+    total_messages = message_q.filter(Message.timestamp >= since, Message.timestamp <= until).count()
 
     # Average feedback rating across the scoped set
     avg_rating = feedback_q.with_entities(func.avg(Feedback.rating)).scalar() or 0.0
@@ -789,7 +1493,7 @@ async def get_analytics(days: int = 30, current_user: User = Depends(get_current
     # Average assistant response time, in milliseconds
     avg_rt = (
 
-        message_q.filter(Message.role == "assistant", Message.timestamp >= since)
+        message_q.filter(Message.role == "assistant", Message.timestamp >= since, Message.timestamp <= until)
 
         .with_entities(func.avg(Message.response_time_ms))
 
@@ -800,7 +1504,7 @@ async def get_analytics(days: int = 30, current_user: User = Depends(get_current
     # Break down assistant messages by which agent handled them
     agent_rows = (
 
-        message_q.filter(Message.role == "assistant", Message.timestamp >= since)
+        message_q.filter(Message.role == "assistant", Message.timestamp >= since, Message.timestamp <= until)
 
         .with_entities(Message.agent, func.count(Message.agent))
 
@@ -831,7 +1535,7 @@ async def get_analytics(days: int = 30, current_user: User = Depends(get_current
     # Break down assistant messages by detected intent
     intent_rows = (
 
-        message_q.filter(Message.role == "assistant", Message.timestamp >= since)
+        message_q.filter(Message.role == "assistant", Message.timestamp >= since, Message.timestamp <= until)
 
         .with_entities(Message.intent, func.count(Message.intent))
 
@@ -848,8 +1552,6 @@ async def get_analytics(days: int = 30, current_user: User = Depends(get_current
     ]
 
     # Break down user messages by sentiment — queried one sentiment at a time
-    from sqlalchemy import text
-
     sentiment_dist = []
 
     for sent in ["neutral", "positive", "negative", "frustrated"]:
@@ -858,7 +1560,11 @@ async def get_analytics(days: int = 30, current_user: User = Depends(get_current
 
             Message.role == "user",
 
-            Message.sentiment == sent
+            Message.sentiment == sent,
+
+            Message.timestamp >= since,
+
+            Message.timestamp <= until,
 
         ).count()
 
@@ -866,12 +1572,20 @@ async def get_analytics(days: int = 30, current_user: User = Depends(get_current
 
             sentiment_dist.append(SentimentStat(sentiment = sent, count = cnt))
 
-    # Daily conversation counts for the last 7 days, used for a trend chart
+    # Daily conversation counts across the FULL selected range (not a
+    # hardcoded 7 days) — capped at 90 days of daily buckets so a
+    # multi-year custom range doesn't return thousands of near-empty points
     daily = defaultdict(int)
+
+    range_span_days = (until - since).days + 1
+
+    trend_start = since if range_span_days <= 90 else until - timedelta(days = 90)
 
     recent_sessions = session_q.filter(
 
-        ChatSession.created_at >= datetime.utcnow() - timedelta(days = 7)
+        ChatSession.created_at >= trend_start,
+
+        ChatSession.created_at <= until,
 
     ).all()
 
@@ -882,6 +1596,77 @@ async def get_analytics(days: int = 30, current_user: User = Depends(get_current
         daily[day_key] += 1
 
     daily_conversations = [{"date": k, "count": v} for k, v in sorted(daily.items())]
+
+    # Resolution rate: percentage of conversations in range that were
+    # NOT escalated to a human agent. A conversation counts as
+    # "escalated" if any support ticket was ever created for it,
+    # regardless of the ticket's current status.
+    resolution_rate = None
+
+    if total_conversations > 0:
+
+        escalated_session_ids = {
+
+            row[0]
+
+            for row in db.query(SupportTicket.session_id)
+
+            .join(ChatSession, SupportTicket.session_id == ChatSession.id)
+
+            .filter(
+
+                ChatSession.created_at >= since,
+
+                ChatSession.created_at <= until,
+
+                *([ChatSession.user_id == current_user.id] if not current_user.is_admin else []),
+
+            )
+
+            .distinct()
+
+            .all()
+
+        }
+
+        resolution_rate = round((1 - len(escalated_session_ids) / total_conversations) * 100, 1)
+
+    # Busiest hours: count of user messages per hour-of-day (0-23),
+    # across the full selected range — reveals when people actually
+    # reach out. Timestamps are stored in UTC throughout the app, but
+    # "busiest hours" is only meaningful in the timezone people actually
+    # message from — fixed to IST (UTC+5:30) here rather than the
+    # server's UTC, so e.g. a message sent at 8:30am IST shows up under
+    # 8am, not 3am.
+    IST_OFFSET = timedelta(hours = 5, minutes = 30)
+
+    hourly = defaultdict(int)
+
+    user_message_timestamps = (
+
+        message_q.filter(
+
+            Message.role == "user",
+
+            Message.timestamp >= since,
+
+            Message.timestamp <= until,
+
+        )
+
+        .with_entities(Message.timestamp)
+
+        .all()
+
+    )
+
+    for (ts,) in user_message_timestamps:
+
+        local_ts = ts + IST_OFFSET
+
+        hourly[local_ts.hour] += 1
+
+    busiest_hours = [{"hour": h, "count": hourly.get(h, 0)} for h in range(24)]
 
     return AnalyticsResponse(
 
@@ -899,7 +1684,11 @@ async def get_analytics(days: int = 30, current_user: User = Depends(get_current
 
         sentiment_distribution = sentiment_dist,
 
-        daily_conversations = daily_conversations
+        daily_conversations = daily_conversations,
+
+        resolution_rate = resolution_rate,
+
+        busiest_hours = busiest_hours,
 
     )
 

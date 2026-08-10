@@ -77,7 +77,41 @@ export const authAPI = {async register(name, email, password, phone = null) {con
 
   async login(email, password) {const data = await apiFetch("/auth/login", {method: "POST", body: JSON.stringify({ email, password })}); setToken(data.access_token); return data},
 
+  async googleLogin(idToken) {const data = await apiFetch("/auth/google", {method: "POST", body: JSON.stringify({ id_token: idToken })}); setToken(data.access_token); return data},
+
+  async sendOtp(email, name = null) {return apiFetch("/auth/send-otp", {method: "POST", body: JSON.stringify({ email, name })})},
+
+  // intent: "login" (default) logs in / auto-registers a passwordless account.
+  // intent: "register" only proves email ownership — returns { otp_token }
+  // which must then be passed to completeRegistration() to actually create
+  // the account with a chosen password.
+  async verifyOtp(email, code, { name = null, intent = "login" } = {}) {
+
+    const data = await apiFetch("/auth/verify-otp", {method: "POST", body: JSON.stringify({ email, code, name, intent })});
+
+    if (intent === "login") setToken(data.access_token);
+
+    return data
+
+  },
+
+  async completeRegistration(name, email, password, otpToken, phone = null) {
+
+    const data = await apiFetch("/auth/register", {method: "POST", body: JSON.stringify({ name, email, password, phone, otp_token: otpToken })});
+
+    setToken(data.access_token);
+
+    return data
+
+  },
+
   async getMe() {return apiFetch("/auth/me")},
+
+  async updatePhone(phone) {return apiFetch("/auth/phone", { method: "PATCH", body: JSON.stringify({ phone }) })},
+
+  async forgotPassword(email) {return apiFetch("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) })},
+
+  async resetPassword(token, newPassword) {return apiFetch("/auth/reset-password", { method: "POST", body: JSON.stringify({ token, new_password: newPassword }) })},
 
   logout() {clearToken(); if (typeof window !== "undefined") window.location.href = "/login"},
 
@@ -128,7 +162,15 @@ export const sessionsAPI = {
 // ------------------------------------------------------------------
 // Chat API
 // ------------------------------------------------------------------
-export const chatAPI = {async sendMessage(message, sessionId = null) {return apiFetch("/chat", {method: "POST", body: JSON.stringify({ message, session_id: sessionId })})}};
+export const chatAPI = {async sendMessage(message, sessionId = null, language = null) {return apiFetch("/chat", {method: "POST", body: JSON.stringify({ message, session_id: sessionId, language })})}};
+
+// ------------------------------------------------------------------
+// Translate API — used to translate stored content (e.g. chat titles)
+// into the user's selected UI language, since that content was
+// generated once in whatever language it was created in and doesn't
+// automatically follow later language switches like static UI text does.
+// ------------------------------------------------------------------
+export const translateAPI = {async translate(texts, targetLanguage) {return apiFetch("/translate", {method: "POST", body: JSON.stringify({ texts, target_language: targetLanguage })})}};
 
 // ------------------------------------------------------------------
 // Feedback API
@@ -144,7 +186,53 @@ export const feedbackAPI = {
 // ------------------------------------------------------------------
 // Analytics API
 // ------------------------------------------------------------------
-export const analyticsAPI = {async get(days = 30) {return apiFetch(`/analytics?days=${days}`)}};
+export const analyticsAPI = {
+
+  async get({ days = 30, startDate = null, endDate = null } = {}) {
+
+    const params = startDate && endDate
+
+      ? `start_date=${startDate}&end_date=${endDate}`
+
+      : `days=${days}`;
+
+    return apiFetch(`/analytics?${params}`);
+
+  },
+
+};
+
+// ------------------------------------------------------------------
+// Documentation API
+// ------------------------------------------------------------------
+export const docsAPI = {
+
+  async list() {return apiFetch("/docs")},
+
+  async get(docId) {return apiFetch(`/docs/${docId}`)},
+
+};
+
+// ------------------------------------------------------------------
+// Bug Report API
+// ------------------------------------------------------------------
+export const bugReportAPI = {
+
+  async submit(title, description, stepsToReproduce = null, pageUrl = null) {
+
+    return apiFetch("/bug-reports", {
+
+      method: "POST",
+
+      body: JSON.stringify({ title, description, steps_to_reproduce: stepsToReproduce, page_url: pageUrl }),
+
+    });
+
+  },
+
+  async listMine() {return apiFetch("/bug-reports")},
+
+};
 
 // ------------------------------------------------------------------
 // Admin API
@@ -162,4 +250,4 @@ export const adminAPI = {
 // ------------------------------------------------------------------
 export const systemAPI = {async health() {return apiFetch("/health")}};
 
-export default {authAPI, sessionsAPI, chatAPI, feedbackAPI, analyticsAPI, adminAPI, systemAPI};
+export default {authAPI, sessionsAPI, chatAPI, translateAPI, feedbackAPI, analyticsAPI, docsAPI, bugReportAPI, adminAPI, systemAPI};

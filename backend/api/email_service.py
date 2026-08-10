@@ -4,13 +4,98 @@ from ..config import settings
 
 logger = logging.getLogger(__name__)
 
+# Brand colors reused across every email template, kept in one place so
+# the look stays consistent if the palette ever changes.
+BRAND_BLUE = "#0f77ff"
+BRAND_DARK = "#0f1533"
+BRAND_MUTED = "#5b6472"
+BRAND_BORDER = "#e6e9f0"
+BRAND_BG = "#f5f7fb"
+BRAND_SUCCESS = "#1f9d5c"
+BRAND_WARNING = "#c98a1f"
+BRAND_DANGER = "#d1372a"
+
 
 def is_email_configured() -> bool:
 
     return bool(settings.SMTP_USER and settings.SMTP_PASSWORD)
 
 
-def send_email(to_email: str, subject: str, body: str) -> bool:
+def _wrap_html(preheader: str, body_html: str) -> str:
+
+    """
+    Wraps template-specific body_html in a consistent branded shell:
+    a dark header with the TechMart wordmark, a white content card, and
+    a plain footer. preheader is the short hidden summary text some email
+    clients show next to the subject line in the inbox list.
+    """
+
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0; padding:0; background:{BRAND_BG}; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<span style="display:none; font-size:1px; color:{BRAND_BG}; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;">{preheader}</span>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{BRAND_BG}; padding:32px 16px;">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px; background:#ffffff; border-radius:16px; overflow:hidden; border:1px solid {BRAND_BORDER};">
+
+<tr><td style="background:{BRAND_DARK}; padding:24px 32px;">
+<table role="presentation" cellpadding="0" cellspacing="0"><tr>
+<td style="width:36px; height:36px; background:{BRAND_BLUE}; border-radius:10px; text-align:center; vertical-align:middle;">
+<span style="color:#ffffff; font-size:18px; font-weight:700; line-height:36px;">T</span>
+</td>
+<td style="padding-left:12px; vertical-align:middle;">
+<span style="color:#ffffff; font-size:16px; font-weight:600;">TechMart Electronics</span><br>
+<span style="color:#9aa3b5; font-size:12px;">Customer Support</span>
+</td>
+</tr></table>
+</td></tr>
+
+<tr><td style="padding:32px;">
+{body_html}
+</td></tr>
+
+<tr><td style="padding:20px 32px; border-top:1px solid {BRAND_BORDER}; background:{BRAND_BG};">
+<p style="margin:0; font-size:12px; color:{BRAND_MUTED}; line-height:1.6;">
+TechMart Electronics Support Team<br>
+Phone: 1-800-TECHMART &nbsp;&middot;&nbsp; Email: <a href="mailto:support@techmartelectronics.com" style="color:{BRAND_BLUE}; text-decoration:none;">support@techmartelectronics.com</a>
+</p>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>"""
+
+
+def _badge(text: str, color: str) -> str:
+
+    "A small pill-shaped label, e.g. for priority or status."
+
+    return f'<span style="display:inline-block; padding:3px 10px; border-radius:999px; background:{color}1a; color:{color}; font-size:12px; font-weight:600;">{text}</span>'
+
+
+def _detail_row(label: str, value: str) -> str:
+
+    "One label/value row inside a details table."
+
+    return f"""<tr>
+<td style="padding:8px 0; font-size:13px; color:{BRAND_MUTED}; width:120px; vertical-align:top;">{label}</td>
+<td style="padding:8px 0; font-size:13px; color:{BRAND_DARK}; font-weight:500;">{value}</td>
+</tr>"""
+
+
+def send_email(to_email: str, subject: str, body: str, html_body: str = None) -> bool:
+
+    """
+    Sends an email. If html_body is provided, sends a multipart email
+    (HTML for clients that render it, plain-text body as the fallback).
+    body is always required as the plain-text version.
+    """
 
     try:
 
@@ -23,7 +108,13 @@ def send_email(to_email: str, subject: str, body: str) -> bool:
         if not api_key:
             
             # Fallback to SMTP if no SendGrid key
-            return _send_smtp(to_email, subject, body)
+            return _send_smtp(to_email, subject, body, html_body)
+
+        content = [{"type": "text/plain", "value": body}]
+
+        if html_body:
+
+            content.append({"type": "text/html", "value": html_body})
 
         payload = _json.dumps({
             
@@ -33,7 +124,7 @@ def send_email(to_email: str, subject: str, body: str) -> bool:
             
             "subject": subject,
             
-            "content": [{"type": "text/plain", "value": body}]
+            "content": content
             
         }).encode()
 
@@ -67,7 +158,7 @@ def send_email(to_email: str, subject: str, body: str) -> bool:
         return False
 
 
-def _send_smtp(to_email: str, subject: str, body: str) -> bool:
+def _send_smtp(to_email: str, subject: str, body: str, html_body: str = None) -> bool:
 
     import smtplib
 
@@ -77,7 +168,7 @@ def _send_smtp(to_email: str, subject: str, body: str) -> bool:
 
     try:
 
-        msg = MIMEMultipart()
+        msg = MIMEMultipart("alternative")
 
         msg["From"] = f"TechMart Support <{settings.SMTP_USER}>"
 
@@ -85,7 +176,14 @@ def _send_smtp(to_email: str, subject: str, body: str) -> bool:
 
         msg["Subject"] = subject
 
+        # Attach plain text first, HTML second — email clients render the
+        # LAST part they understand, so HTML-capable clients show the
+        # HTML version while plain-text-only clients fall back correctly.
         msg.attach(MIMEText(body, "plain"))
+
+        if html_body:
+
+            msg.attach(MIMEText(html_body, "html"))
 
         with smtplib.SMTP(settings.SMTP_HOST, int(settings.SMTP_PORT)) as server:
 
@@ -110,96 +208,233 @@ def _send_smtp(to_email: str, subject: str, body: str) -> bool:
         return False
 
 
+def send_otp_email(to_email: str, code: str, expires_in_minutes: int) -> bool:
+
+    subject = f"Your TechMart verification code is {code}"
+
+    text_body = f"""Your TechMart Electronics verification code is:
+
+{code}
+
+This code expires in {expires_in_minutes} minutes. Don't share it with anyone.
+
+If you didn't request this code, you can safely ignore this email.
+
+TechMart Electronics Support Team"""
+
+    body_html = f"""
+<p style="margin:0 0 20px; font-size:14px; color:{BRAND_MUTED}; line-height:1.6;">Use the code below to verify your email address.</p>
+<div style="text-align:center; background:{BRAND_BG}; border-radius:12px; padding:24px; margin-bottom:20px;">
+<span style="font-size:32px; font-weight:700; letter-spacing:8px; color:{BRAND_DARK};">{code}</span>
+</div>
+<p style="margin:0; font-size:13px; color:{BRAND_MUTED}; line-height:1.6;">This code expires in {expires_in_minutes} minutes. If you didn't request this code, you can safely ignore this email.</p>
+"""
+
+    return send_email(to_email, subject, text_body, _wrap_html(f"Your verification code is {code}", body_html))
+
+
+def send_password_reset_email(to_email: str, reset_url: str, expires_in_minutes: int) -> bool:
+
+    subject = "Reset your TechMart password"
+
+    text_body = f"""We received a request to reset your TechMart Electronics account password.
+
+Reset your password using this link:
+{reset_url}
+
+This link expires in {expires_in_minutes} minutes. If you didn't request this, you can safely ignore this email — your password will not be changed.
+
+TechMart Electronics Support Team"""
+
+    body_html = f"""
+<p style="margin:0 0 20px; font-size:14px; color:{BRAND_MUTED}; line-height:1.6;">We received a request to reset the password for your TechMart Electronics account. Click the button below to choose a new password.</p>
+<div style="text-align:center; margin-bottom:20px;">
+<a href="{reset_url}" style="display:inline-block; background:{BRAND_BLUE}; color:#ffffff; text-decoration:none; font-size:14px; font-weight:600; padding:12px 28px; border-radius:10px;">Reset Password</a>
+</div>
+<p style="margin:0 0 8px; font-size:12px; color:{BRAND_MUTED}; line-height:1.6;">Or copy and paste this link into your browser:</p>
+<p style="margin:0 0 20px; font-size:12px; word-break:break-all;"><a href="{reset_url}" style="color:{BRAND_BLUE};">{reset_url}</a></p>
+<p style="margin:0; font-size:13px; color:{BRAND_MUTED}; line-height:1.6;">This link expires in {expires_in_minutes} minutes. If you didn't request this, you can safely ignore this email — your password will not be changed.</p>
+"""
+
+    return send_email(to_email, subject, text_body, _wrap_html("Reset your TechMart password", body_html))
+
+
 def send_escalation_emails(customer_name, customer_email, session_id, session_title = "Support Query"):
 
     reference = f"ESC-{session_id[:8].upper()}"
 
     timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
 
-    customer_body = f"""Dear {customer_name},
+    # --- Customer-facing email ---
+    customer_text = f"""Dear {customer_name},
 
-    Your support request has been escalated to a human agent.
+Your support request has been escalated to a human agent.
 
-    Reference: {reference}
+Reference: {reference}
+Topic: {session_title}
+Time: {timestamp}
 
-    Topic: {session_title}
+A TechMart specialist will contact you at {customer_email} within 2 business hours.
 
-    Time: {timestamp}
+Phone: 1-800-TECHMART
+Email: support@techmartelectronics.com
 
-    A TechMart specialist will contact you at {customer_email} within 2 business hours.
+Thank you for your patience.
 
-    Phone: 1-800-TECHMART
+TechMart Electronics Support Team"""
 
-    Email: support@techmartelectronics.com
+    customer_html = f"""
+<p style="margin:0 0 4px; font-size:15px; color:{BRAND_DARK};">Dear {customer_name},</p>
+<p style="margin:0 0 20px; font-size:14px; color:{BRAND_MUTED}; line-height:1.6;">Your support request has been escalated to a human agent. A specialist will contact you within 2 business hours.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{BRAND_BG}; border-radius:12px; padding:16px 20px;">
+{_detail_row("Reference", reference)}
+{_detail_row("Topic", session_title)}
+{_detail_row("Time", timestamp)}
+{_detail_row("Status", _badge("ESCALATED", BRAND_BLUE))}
+</table>
+"""
 
-    Thank you for your patience.
-
-    TechMart Electronics Support Team"""
-
+    # --- Internal support-team alert ---
     support_email = settings.SUPPORT_EMAIL or settings.SMTP_USER
-            
-    support_body = f"""ESCALATION ALERT
 
-    Customer: {customer_name}
+    support_text = f"""ESCALATION ALERT
 
-    Email: {customer_email}
+Customer: {customer_name}
+Email: {customer_email}
+Reference: {reference}
+Topic: {session_title}
+Time: {timestamp}
 
-    Reference: {reference}
+Contact this customer within 2 business hours."""
 
-    Topic: {session_title}
+    support_html = f"""
+<p style="margin:0 0 20px; font-size:14px; color:{BRAND_DANGER}; font-weight:600;">A customer has been escalated to a human agent — response required within 2 business hours.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{BRAND_BG}; border-radius:12px; padding:16px 20px;">
+{_detail_row("Customer", customer_name)}
+{_detail_row("Email", customer_email)}
+{_detail_row("Reference", reference)}
+{_detail_row("Topic", session_title)}
+{_detail_row("Time", timestamp)}
+</table>
+"""
 
-    Time: {timestamp}
+    customer_sent = send_email(
 
-    Contact this customer within 2 business hours.
-    """
+        customer_email,
 
-    customer_sent = send_email(customer_email, f"[TechMart] Your Case {reference} — Human Agent Requested", customer_body)
+        f"[TechMart] Your Case {reference} — Human Agent Requested",
+
+        customer_text,
+
+        _wrap_html(f"Your case {reference} has been escalated", customer_html)
+
+    )
     
-    support_sent = send_email(support_email, f"ESCALATION — {customer_name} [{reference}]", support_body)
+    support_sent = send_email(
+
+        support_email,
+
+        f"ESCALATION — {customer_name} [{reference}]",
+
+        support_text,
+
+        _wrap_html(f"Escalation alert for {customer_name}", support_html)
+
+    )
 
     return {"customer_email_sent": customer_sent, "support_email_sent": support_sent, "reference": reference}
 
 
 def send_ticket_created_email(customer_name, customer_email, ticket_number, subject, priority):
-    
-    body = f"""Dear {customer_name},
 
-    A support ticket has been created for your inquiry.
+    priority_color = {"high": BRAND_DANGER, "medium": BRAND_WARNING, "low": BRAND_SUCCESS}.get(priority.lower(), BRAND_MUTED)
 
-    Ticket: {ticket_number}
+    text_body = f"""Dear {customer_name},
 
-    Subject: {subject[:80]}
+A support ticket has been created for your inquiry.
 
-    Priority: {priority.upper()}
+Ticket: {ticket_number}
+Subject: {subject[:80]}
+Priority: {priority.upper()}
+Status: OPEN
 
-    Status: OPEN
+Our team will respond based on priority:
+HIGH -> Within 2 hours
+MEDIUM -> Within 4 hours
 
-    Our team will respond based on priority:
+Phone: 1-800-TECHMART
+Email: support@techmartelectronics.com
 
-    HIGH → Within 2 hours
+TechMart Electronics Support Team"""
 
-    MEDIUM → Within 4 hours
+    body_html = f"""
+<p style="margin:0 0 4px; font-size:15px; color:{BRAND_DARK};">Dear {customer_name},</p>
+<p style="margin:0 0 20px; font-size:14px; color:{BRAND_MUTED}; line-height:1.6;">A support ticket has been created for your inquiry.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{BRAND_BG}; border-radius:12px; padding:16px 20px; margin-bottom:20px;">
+{_detail_row("Ticket", ticket_number)}
+{_detail_row("Subject", subject[:80])}
+{_detail_row("Priority", _badge(priority.upper(), priority_color))}
+{_detail_row("Status", _badge("OPEN", BRAND_BLUE))}
+</table>
+<p style="margin:0; font-size:13px; color:{BRAND_MUTED}; line-height:1.6;">Expected response time: <strong style="color:{BRAND_DARK};">2 hours</strong> for high priority, <strong style="color:{BRAND_DARK};">4 hours</strong> for medium priority.</p>
+"""
 
-    Phone: 1-800-TECHMART
+    return send_email(
 
-    Email: support@techmartelectronics.com
+        customer_email,
 
-    TechMart Electronics Support Team
-    """
+        f"[TechMart] Ticket {ticket_number} Created — {priority.upper()} Priority",
 
-    return send_email(customer_email, f"[TechMart] Ticket {ticket_number} Created — {priority.upper()} Priority", body)
+        text_body,
+
+        _wrap_html(f"Your ticket {ticket_number} has been created", body_html)
+
+    )
 
 
 def send_feedback_thank_you(customer_name, customer_email, rating):
 
-    stars = "⭐" * rating
+    text_body = f"""Dear {customer_name},
 
-    body = f"""Dear {customer_name},
-    
-Thank you for rating your experience! {stars} ({rating}/5)
+Thank you for rating your experience: {rating}/5
 
-{'We are thrilled to hear you had a great experience!' if rating >= 4 else 'We appreciate your honest feedback.'}
+{'We are glad to hear you had a great experience.' if rating >= 4 else 'We appreciate your honest feedback and will use it to improve.'}
 
 TechMart Electronics Support Team"""
 
-    return send_email(customer_email, f"[TechMart] Thank You for Your Feedback! {stars}", body)
+    stars_html = "".join(
+
+        f'<span style="color:{BRAND_WARNING if i < rating else BRAND_BORDER}; font-size:22px;">&#9733;</span>' for i in range(5)
+
+    )
+
+    follow_up = (
+
+        "We're glad to hear you had a great experience."
+
+        if rating >= 4
+
+        else "We appreciate your honest feedback and will use it to improve our service."
+
+    )
+
+    body_html = f"""
+<p style="margin:0 0 4px; font-size:15px; color:{BRAND_DARK};">Dear {customer_name},</p>
+<p style="margin:0 0 20px; font-size:14px; color:{BRAND_MUTED}; line-height:1.6;">Thank you for taking the time to rate your experience.</p>
+<div style="text-align:center; margin-bottom:20px;">{stars_html}<br>
+<span style="font-size:13px; color:{BRAND_MUTED};">{rating} out of 5</span>
+</div>
+<p style="margin:0; font-size:14px; color:{BRAND_MUTED}; line-height:1.6; text-align:center;">{follow_up}</p>
+"""
+
+    return send_email(
+
+        customer_email,
+
+        "[TechMart] Thank You for Your Feedback",
+
+        text_body,
+
+        _wrap_html("Thank you for your feedback", body_html)
+
+    )

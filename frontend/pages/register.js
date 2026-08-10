@@ -1,8 +1,9 @@
 // frontend/pages/register.js
 //
-// Account creation page. Validates the form client-side (name, email,
-// password length/match) before calling the register API, and shows
-// a simple password-strength indicator as the user types.
+// Account creation page. Sign up with Google, or verify your email with
+// a one-time code before choosing a password (handled by OTPLogin with
+// intent="register") — this proves the person actually owns the email
+// address before any account is created.
 
 import { useState, useEffect } from "react";
 
@@ -14,33 +15,22 @@ import Link from "next/link";
 
 import { authAPI } from "../services/api";
 
+import GoogleSignInButton from "../components/GoogleSignInButton";
+
+import OTPLogin from "../components/OTPLogin";
+
+import AddPhoneModal from "../components/AddPhoneModal";
+
 export default function RegisterPage() {
 
   const router = useRouter();
-
-  const [form, setForm] = useState({
-
-    name: "",
-
-    email: "",
-
-    phone: "",
-
-    password: "",
-
-    confirm: ""
-
-  });
 
   const [error, setError] = useState("");
 
   const [loading, setLoading] = useState(false);
 
-// To Show/Hide Password
-  const [showPassword, setShowPassword] = useState(false);
-
-// To Show/Hide Password
-  const [showConfirm, setShowConfirm] = useState(false);
+  // Shown once right after a Google sign-up that has no phone on file yet
+  const [showAddPhone, setShowAddPhone] = useState(false);
 
   useEffect(() => {
 
@@ -49,40 +39,7 @@ export default function RegisterPage() {
 
   }, []);
 
-  const handleChange = (e) =>
-
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-
-  // Client-side validation, returns an error string or null if the form is valid
-  const validate = () => {
-
-    if (!form.name.trim()) return "Please enter your name.";
-
-    if (!form.email) return "Please enter your email.";
-
-    if (form.password.length < 6)
-
-      return "Password must be at least 6 characters.";
-
-    if (form.password !== form.confirm) return "Passwords do not match.";
-
-    return null;
-
-  };
-
-  const handleSubmit = async (e) => {
-
-    e.preventDefault();
-
-    const validationError = validate();
-
-    if (validationError) {
-
-      setError(validationError);
-
-      return;
-
-    }
+  const handleGoogleCredential = async (idToken) => {
 
     setError("");
 
@@ -90,23 +47,21 @@ export default function RegisterPage() {
 
     try {
 
-      await authAPI.register(
+      const data = await authAPI.googleLogin(idToken);
 
-        form.name.trim(),
+      if (!data.user?.phone) {
 
-        form.email,
+        setShowAddPhone(true);
 
-        form.password,
+        return;
 
-        form.phone || null
-
-      );
+      }
 
       router.push("/chat");
 
     } catch (err) {
 
-      setError(err.message || "Registration failed. Please try again.");
+      setError(err.message || "Google sign-in failed. Please try again.");
 
     } finally {
 
@@ -116,27 +71,11 @@ export default function RegisterPage() {
 
   };
 
-  // Simple password strength score based on length only:
-  // 0 = empty, 1 = weak (<6 chars), 2 = good (<10 chars), 3 = strong (10+ chars)
-  const strength =
+  const handleOTPSuccess = () => {
 
-    form.password.length === 0
+    router.push("/chat");
 
-      ? 0
-
-      : form.password.length < 6
-
-        ? 1
-
-        : form.password.length < 10
-
-          ? 2
-
-          : 3;
-
-  const strengthLabel = ["", "Weak", "Good", "Strong"];
-
-  const strengthColor = ["", "bg-[var(--tm-danger)]", "bg-[var(--tm-warning)]", "bg-[var(--tm-success)]"];
+  };
 
   return (
 
@@ -203,388 +142,26 @@ export default function RegisterPage() {
 
           <div className = "card p-8">
 
-            <form onSubmit = {handleSubmit} className = "space-y-4">
+            <GoogleSignInButton onCredential = {handleGoogleCredential} onError = {(err) => setError(err.message)} text = "signup_with" />
 
-              <div>
+            <div className = "flex items-center gap-3 my-5">
 
-                <label className = "block text-sm font-medium text-[var(--tm-text-slate)] mb-1.5">
+              <div className = "flex-1 h-px bg-[var(--tm-border-light)]" />
 
-                  Full Name
+              <span className = "text-xs text-[var(--tm-text-faint)]">OR SIGN UP WITH</span>
 
-                </label>
+              <div className = "flex-1 h-px bg-[var(--tm-border-light)]" />
 
-                <input
+            </div>
 
-                  type = "text"
+            <p className = "text-sm text-[var(--tm-text-muted)] mb-4">
 
-                  name = "name"
+              We'll email you a verification code, then you can set a password.
 
-                  value = {form.name}
+            </p>
 
-                  onChange = {handleChange}
+            <OTPLogin onSuccess = {handleOTPSuccess} collectName = {true} intent = "register" />
 
-                  placeholder = "Jane Doe"
-
-                  className = "auth-input"
-
-                  required
-
-                />
-
-              </div>
-
-              <div>
-
-                <label className = "block text-sm font-medium text-[var(--tm-text-slate)] mb-1.5">
-
-                  Email Address
-
-                </label>
-
-                <input
-
-                  type = "email"
-
-                  name = "email"
-
-                  value = {form.email}
-
-                  onChange = {handleChange}
-
-                  placeholder = "you@example.com"
-
-                  className = "auth-input"
-
-                  autoComplete = "email"
-
-                  required
-
-                />
-
-              </div>
-
-              <div>
-
-                <label className = "block text-sm font-medium text-[var(--tm-text-slate)] mb-1.5">
-
-                  Phone Number
-
-                  <span className = "text-[var(--tm-text-faint)] font-normal ml-1">
-
-                    (optional — for WhatsApp alerts)
-
-                  </span>
-
-                </label>
-
-                <input
-
-                  type = "tel"
-
-                  name = "phone"
-
-                  value = {form.phone}
-
-                  onChange = {handleChange}
-
-                  placeholder = "+91 98765 43210"
-
-                  className = "auth-input"
-
-                />
-
-                <p className = "text-[var(--tm-text-faint)] text-xs mt-1">
-
-                  Include country code e.g. +91 for India, +1 for US
-
-                </p>
-
-              </div>
-
-              <div>
-
-                <label className = "block text-sm font-medium text-[var(--tm-text-slate)] mb-1.5">
-
-                  Password
-
-                </label>
-
-                <div style = {{ position: "relative" }}>
-
-                  <input
-
-                    type = {showPassword ? "text" : "password"}
-
-                    name = "password"
-
-                    value = {form.password}
-
-                    onChange = {handleChange}
-
-                    placeholder="••••••••"
-
-                    className = "auth-input"
-
-                    style = {{ paddingRight: "44px" }}
-
-                    autoComplete = "new-password"
-
-                    required
-
-                  />
-
-                  <button
-
-                    type = "button"
-
-                    onClick={() => setShowPassword((prev) => !prev)}
-
-                    className = "icon-btn"
-
-                    style={{
-
-                      position: "absolute",
-
-                      right: 8,
-
-                      top: "50%",
-
-                      transform: "translateY(-50%)",
-
-                      padding: 6,
-
-                    }}
-
-                  >
-
-                    {showPassword ? (
-
-                      <svg width = "18" height = "18" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
-
-                        <path d = "M2.5 12C4.8 7.2 8.2 4.8 12 4.8s7.2 2.4 9.5 7.2c-2.3 4.8-5.7 7.2-9.5 7.2S4.8 16.8 2.5 12Z"/>
-
-                        <circle cx = "12" cy = "12" r = "3.2"/>
-
-                        <line x1 = "3.5" y1 = "20.5" x2 = "20.5" y2 = "3.5"/>
-
-                      </svg>
-
-                    ) : (
-
-                      <svg width = "18" height = "18" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
-
-                        <path d = "M2.5 12C4.8 7.2 8.2 4.8 12 4.8s7.2 2.4 9.5 7.2c-2.3 4.8-5.7 7.2-9.5 7.2S4.8 16.8 2.5 12Z"/>
-
-                        <circle cx = "12" cy = "12" r = "3.2"/>
-
-                      </svg>
-
-                    )}
-
-
-                  </button>
-
-                </div>
-
-                {form.password && (
-
-                  <div className = "mt-2 flex items-center gap-2">
-
-                    <div className = "flex-1 h-1 bg-[var(--techmart-gray-200)] rounded-full overflow-hidden">
-
-                      <div
-
-                        className = {`h-full rounded-full transition-all ${strengthColor[strength]}`}
-
-                        style = {{ width: `${(strength / 3) * 100}%` }}
-
-                      />
-
-                    </div>
-
-                    <span className = "text-xs text-[var(--tm-text-muted)]">
-
-                      {strengthLabel[strength]}
-
-                    </span>
-
-                  </div>
-
-                )}
-
-              </div>
-
-              <div>
-
-                <label className = "block text-sm font-medium text-[var(--tm-text-slate)] mb-1.5">
-
-                  Confirm Password
-
-                </label>
-
-                <div style = {{ position: "relative" }}>
-
-                  <input
-
-                    type = {showConfirm ? "text" : "password"}
-
-                    name = "confirm"
-
-                    value = {form.confirm}
-
-                    onChange = {handleChange}
-
-                    placeholder = "Repeat your password"
-
-                    className = "auth-input"
-
-                    style = {{ paddingRight: "44px" }}
-
-                    autoComplete = "new-password"
-
-                    required
-
-                  />
-
-                  <button
-
-                    type = "button"
-
-                    onClick = {() => setShowConfirm((prev) => !prev)}
-
-                    className = "icon-btn"
-
-                    style = {{
-
-                      position: "absolute",
-
-                      right: 8,
-
-                      top: "50%",
-
-                      transform: "translateY(-50%)",
-
-                      padding: 6,
-
-                    }}
-
-                  >
-
-                    {showConfirm ? (
-
-                      <svg width = "18" height = "18" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
-
-                        <path d = "M2.5 12C4.8 7.2 8.2 4.8 12 4.8s7.2 2.4 9.5 7.2c-2.3 4.8-5.7 7.2-9.5 7.2S4.8 16.8 2.5 12Z"/>
-
-                        <circle cx = "12" cy = "12" r = "3.2"/>
-
-                        <line x1 = "3.5" y1 = "20.5" x2 = "20.5" y2 = "3.5"/>
-
-                      </svg>
-
-                    ) : (
-
-                      <svg width = "18" height = "18" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
-
-                        <path d = "M2.5 12C4.8 7.2 8.2 4.8 12 4.8s7.2 2.4 9.5 7.2c-2.3 4.8-5.7 7.2-9.5 7.2S4.8 16.8 2.5 12Z"/>
-
-                        <circle cx = "12" cy = "12" r = "3.2"/>
-
-                      </svg>
-
-                    )}
-
-                  </button>
-
-                </div>
-
-                {form.confirm && form.password !== form.confirm && (
-
-                  <p className = "text-[var(--tm-danger)] text-xs mt-1.5">
-
-                    Passwords don't match
-
-                  </p>
-
-                )}
-
-              </div>
-
-              {error && (
-
-                <div className = "bg-[var(--tm-danger)]/10 border border-[var(--tm-danger)]/30 rounded-xl px-4 py-3 text-[var(--tm-danger)] text-sm fade-in">
-
-                  ⚠️ {error}
-
-                </div>
-
-              )}
-
-              <button
-
-                type = "submit"
-
-                disabled = {loading}
-
-                className = "btn-primary w-full flex items-center justify-center gap-2 mt-2"
-
-              >
-
-                {loading ? (
-
-                  <>
-
-                    <svg
-
-                      className = "animate-spin w-4 h-4"
-
-                      viewBox = "0 0 24 24"
-
-                      fill = "none"
-
-                    >
-
-                      <circle
-
-                        className = "opacity-25"
-
-                        cx = "12"
-
-                        cy = "12"
-
-                        r = "10"
-
-                        stroke = "currentColor"
-
-                        strokeWidth = "4"
-
-                      />
-
-                      <path
-
-                        className = "opacity-75"
-
-                        fill = "currentColor"
-
-                        d = "M4 12a8 8 0 018-8v8H4z"
-
-                      />
-
-                    </svg>
-
-                    Creating account...
-
-                  </>
-
-                ) : (
-
-                  "Create Account"
-
-                )}
-
-              </button>
-
-            </form>
 
             <div className = "mt-6 pt-6 border-t border-[var(--tm-border-light)] text-center">
 
@@ -613,6 +190,12 @@ export default function RegisterPage() {
         </div>
 
       </div>
+
+      {showAddPhone && (
+
+        <AddPhoneModal onClose = {() => { setShowAddPhone(false); router.push("/chat"); }} />
+
+      )}
     </>
 
   );

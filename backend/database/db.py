@@ -53,12 +53,23 @@ class User(Base):
 
     name = Column(String, nullable = False)
 
-    # Stores a hashed password, never the plain-text password
-    password_hash = Column(String, nullable = False)
+    # Stores a hashed password, never the plain-text password.
+    # Nullable because accounts created via Google Sign-In may never set one.
+    password_hash = Column(String, nullable = True)
 
     phone = Column(String, nullable = True)  # for WhatsApp notifications
 
     is_admin = Column(Boolean, default = False)
+
+    # Google account identifier ("sub" claim), set only for Google Sign-In users
+    google_id = Column(String, unique = True, index = True, nullable = True)
+
+    # How this account was created/most recently authenticated: "password" | "google" | "otp"
+    auth_provider = Column(String, default = "password")
+
+    # True once the email has been confirmed, either via OTP verification
+    # or automatically for Google accounts (Google already verifies email ownership)
+    is_verified = Column(Boolean, default = False)
 
     created_at = Column(DateTime, default = datetime.utcnow)
 
@@ -212,6 +223,79 @@ class SupportTicket(Base):
     created_at = Column(DateTime, default = datetime.utcnow)
 
     updated_at = Column(DateTime, default = datetime.utcnow)
+
+
+class BugReport(Base):
+
+    "A bug report submitted by a user from the Get Help menu."
+
+    __tablename__ = "bug_reports"
+
+    id = Column(String, primary_key = True, default = lambda: str(uuid.uuid4()))
+
+    user_id = Column(String, ForeignKey("users.id"), nullable = False)
+
+    title = Column(String, nullable = False)
+
+    description = Column(Text, nullable = False)
+
+    steps_to_reproduce = Column(Text, nullable = True)
+
+    # Which page the user was on when they hit the bug, if known
+    page_url = Column(String, nullable = True)
+
+    # "open" | "in_progress" | "resolved" | "wont_fix"
+    status = Column(String, default = "open")
+
+    created_at = Column(DateTime, default = datetime.utcnow)
+
+
+class OTPCode(Base):
+
+    "A one-time passcode issued for email-based login/registration."
+
+    __tablename__ = "otp_codes"
+
+    id = Column(String, primary_key = True, default = lambda: str(uuid.uuid4()))
+
+    email = Column(String, index = True, nullable = False)
+
+    # bcrypt hash of the 6-digit code — never store the raw code
+    code_hash = Column(String, nullable = False)
+
+    expires_at = Column(DateTime, nullable = False)
+
+    # How many times an incorrect code has been submitted for this row
+    attempts = Column(Integer, default = 0)
+
+    # Set True once successfully verified, so a used code can't be replayed
+    is_used = Column(Boolean, default = False)
+
+    created_at = Column(DateTime, default = datetime.utcnow)
+
+
+class PasswordResetToken(Base):
+
+    "A one-time token issued for the forgot-password / reset-password email flow."
+
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(String, primary_key = True, default = lambda: str(uuid.uuid4()))
+
+    email = Column(String, index = True, nullable = False)
+
+    # SHA-256 hash of the raw token — the raw token itself goes in the
+    # reset link's URL and is never stored, so a database leak alone
+    # can't be used to reset anyone's password.
+    token_hash = Column(String, nullable = False, unique = True, index = True)
+
+    expires_at = Column(DateTime, nullable = False)
+
+    # Set True once the password has actually been reset with this
+    # token, so the same link can't be used a second time.
+    is_used = Column(Boolean, default = False)
+
+    created_at = Column(DateTime, default = datetime.utcnow)
 
 
 # ------------------------------------------------------------------

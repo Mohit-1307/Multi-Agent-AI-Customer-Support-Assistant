@@ -583,7 +583,7 @@ class AgentRouter:
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
-    async def route(self, user_message: str, conversation_history: Optional[List[dict]] = None) -> dict:
+    async def route(self, user_message: str, conversation_history: Optional[List[dict]] = None, preferred_language: Optional[str] = None) -> dict:
         
         "Main entry point. Detects intent/sentiment, picks the right agent(s), and returns the full routing + agent response payload."
 
@@ -646,7 +646,7 @@ class AgentRouter:
         # Step 4: Invoke the primary agent to generate the actual response
         primary_agent = self._agents.get(primary_intent, self._agents["faq"])
 
-        primary_result = await primary_agent.respond(user_message, history)
+        primary_result = await primary_agent.respond(user_message, history, preferred_language = preferred_language)
 
         # Step 5: If more than one agent applies (rare — usually just the
         # frustrated + complaint case above), blend in an empathy opener
@@ -656,7 +656,7 @@ class AgentRouter:
 
             complaint_agent = self._agents["complaint"]
 
-            complaint_result = await complaint_agent.respond(user_message, history)
+            complaint_result = await complaint_agent.respond(user_message, history, preferred_language = preferred_language)
 
             # Prepend an empathy statement from the complaint agent, but only
             # if it isn't already present in the primary response (avoid duplication)

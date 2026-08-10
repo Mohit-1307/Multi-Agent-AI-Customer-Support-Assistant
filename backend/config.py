@@ -13,11 +13,13 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load variables from a .env file (if one exists) into the environment
-load_dotenv()
-
 # Project root folder — two levels up from this file (backend/config.py -> project root)
 BASE_DIR = Path(__file__).parent.parent
+
+# Load variables from backend/.env — resolved relative to this file rather
+# than the current working directory, so it's found no matter where the
+# app is launched from (project root, backend/, or elsewhere).
+load_dotenv(Path(__file__).parent / ".env")
 
 
 class Settings:
@@ -102,6 +104,46 @@ class Settings:
 
     # How long a login token stays valid, in minutes (default: 24 hours)
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 hours
+
+
+    # ------------------------------------------------------------------
+    # Google Sign-In (OAuth ID token verification)
+    # ------------------------------------------------------------------
+    # The Google Cloud OAuth 2.0 Client ID (Web application type). Must match
+    # the client ID used by the frontend's Google Identity Services button.
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
+
+
+    # ------------------------------------------------------------------
+    # Email OTP (one-time passcode) login/registration
+    # ------------------------------------------------------------------
+    OTP_LENGTH: int = int(os.getenv("OTP_LENGTH", "6"))
+
+    OTP_EXPIRE_MINUTES: int = int(os.getenv("OTP_EXPIRE_MINUTES", "10"))
+
+    # Minimum seconds a user must wait before requesting another OTP for the same email
+    OTP_RESEND_COOLDOWN_SECONDS: int = int(os.getenv("OTP_RESEND_COOLDOWN_SECONDS", "60"))
+
+    # Max wrong-code attempts allowed per issued OTP before it's invalidated
+    OTP_MAX_ATTEMPTS: int = int(os.getenv("OTP_MAX_ATTEMPTS", "5"))
+
+    # How long the short-lived "email verified" proof token stays valid after
+    # a successful OTP check, before it must be used to complete password
+    # registration (kept short since it's a narrow-purpose token, not a login session)
+    EMAIL_VERIFICATION_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("EMAIL_VERIFICATION_TOKEN_EXPIRE_MINUTES", "15"))
+
+
+    # ------------------------------------------------------------------
+    # Password reset (forgot-password email flow)
+    # ------------------------------------------------------------------
+    # Base URL of the frontend app, used to build the reset-password link
+    # sent in the email (e.g. "http://localhost:3000" or the deployed domain)
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("PASSWORD_RESET_TOKEN_EXPIRE_MINUTES", "30"))
+
+    # Minimum seconds between reset-link requests for the same email
+    PASSWORD_RESET_RESEND_COOLDOWN_SECONDS: int = int(os.getenv("PASSWORD_RESET_RESEND_COOLDOWN_SECONDS", "60"))
 
 
     # ------------------------------------------------------------------

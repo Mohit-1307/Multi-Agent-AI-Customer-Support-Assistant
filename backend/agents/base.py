@@ -11,6 +11,7 @@ import logging
 from typing import List, Optional
 from ..config import settings
 from ..rag.retriever import FAISSRetriever, RetrievalResult, get_retriever
+from .language import detect_language
 from .llm_client import LLMClient, get_llm_client
 
 logger = logging.getLogger(__name__)
@@ -125,10 +126,16 @@ class BaseAgent:
     # --------------------------------------------------------------------
     # Main entry point — this is what routes.py calls to get a response
     # --------------------------------------------------------------------
-    async def respond(self, user_message: str, conversation_history: Optional[List[dict]] = None, top_k: int = None) -> dict:
+    async def respond(self, user_message: str, conversation_history: Optional[List[dict]] = None, top_k: int = None, preferred_language: Optional[str] = None) -> dict:
         
         """
         Generate a response to the user message.
+
+        preferred_language, if given (e.g. "Hindi", "Spanish"), forces the
+        reply into that language regardless of what language the message
+        itself is written in — this is how the UI's language selector
+        controls AI reply language. When omitted, the reply language is
+        auto-detected from the message text instead (the original behavior).
 
         Returns a dict with keys: response, context_retrieved, sources, agent
         """
@@ -140,7 +147,7 @@ class BaseAgent:
         context, sources, retrieved = await self._retrieve_context(user_message, top_k or settings.TOP_K_RESULTS)
 
         # Step 2: Build the message list (recent history + current message)
-        messages = self._build_messages(user_message, history, context)
+        messages = self._build_messages(user_message, history, context, preferred_language)
 
         # Step 3: Build the system prompt, falling back to a simple default if it fails
         try:
@@ -165,23 +172,49 @@ class BaseAgent:
 
             )
 
-        # Detect language from the CURRENT message only, ignoring conversation history —
-        # this way a reply always matches what the customer just typed, not an earlier message
-        lang_hint = self._detect_language(user_message)
+        if preferred_language:
 
-        system += (
+            # The user has an explicit language preference set in the UI —
+            # honor that over whatever language the message happens to be
+            # written in (e.g. they typed in English but want replies in Hindi).
+            lang_hint = preferred_language
 
-            f"\n\nCRITICAL LANGUAGE INSTRUCTION:\n"
+            system += (
 
-            f"The customer's CURRENT message language is: {lang_hint}\n"
+                f"\n\nCRITICAL LANGUAGE INSTRUCTION:\n"
 
-            f"You MUST respond in {lang_hint} ONLY.\n"
+                f"The customer has selected {lang_hint} as their preferred language.\n"
 
-            f"Ignore the language of previous messages in the conversation.\n"
+                f"You MUST respond in {lang_hint} ONLY, regardless of what language "
 
-            f"Base your language choice ONLY on the current message above."
+                f"the customer's message is written in.\n"
 
-        )
+                f"Ignore the language of the message text and of previous messages — "
+
+                f"always reply in {lang_hint}."
+
+            )
+
+        else:
+
+            # No explicit preference — detect language from the CURRENT
+            # message only, ignoring conversation history, so a reply
+            # always matches what the customer just typed
+            lang_hint = detect_language(user_message)
+
+            system += (
+
+                f"\n\nCRITICAL LANGUAGE INSTRUCTION:\n"
+
+                f"The customer's CURRENT message language is: {lang_hint}\n"
+
+                f"You MUST respond in {lang_hint} ONLY.\n"
+
+                f"Ignore the language of previous messages in the conversation.\n"
+
+                f"Base your language choice ONLY on the current message above."
+
+            )
 
         # If we retrieved any knowledge-base context, attach it to the system prompt
         if context:
@@ -206,54 +239,6 @@ class BaseAgent:
     # ------------------------------------------------------------------
     # Internal helper methods
     # ------------------------------------------------------------------
-    def _detect_language(self, text: str) -> str:
-        
-        """
-        Simple language detection based on unicode ranges and common keyword matches.
-        This is not a full NLP language detector, just a lightweight heuristic
-        good enough to steer the LLM's reply language.
-        """
-
-        # Hindi — check for characters in the Devanagari unicode block
-        if any("\u0900" <= c <= "\u097f" for c in text):
-
-            return "Hindi"
-
-        text_lower = text.lower()
-
-        # Spanish — look for common Spanish words
-        if any(word in text_lower for word in ["hola", "como", "gracias", "problema", "ayuda", "quiero", "necesito", "tengo", "precio", "reembolso", "factura"]):
-
-            return "Spanish"
-
-        # French — look for common French words
-        if any(word in text_lower for word in ["bonjour", "merci", "problème", "aide", "comment", "voulez", "remboursement", "facture", "prix", "produit"]):
-
-            return "French"
-
-        # German — look for common German words
-        if any(word in text_lower for word in ["danke", "bitte", "hilfe", "problem", "hallo", "ich", "rückerstattung", "rechnung", "preis", "produkt"]):
-
-            return "German"
-
-        # Japanese — check for Hiragana/Katakana unicode block
-        if any("\u3040" <= c <= "\u30ff" for c in text):
-
-            return "Japanese"
-
-        # Arabic — check for Arabic unicode block
-        if any("\u0600" <= c <= "\u06ff" for c in text):
-
-            return "Arabic"
-
-        # Chinese — check for CJK unicode block
-        if any("\u4e00" <= c <= "\u9fff" for c in text):
-
-            return "Chinese"
-
-        # Default: assume English if nothing else matched
-        return "English"
-
     async def _retrieve_context(self, query: str, top_k: int) -> tuple[str, List[str], bool]:
         
         """
@@ -282,7 +267,7 @@ class BaseAgent:
 
         return context, sources, True
 
-    def _build_messages(self, user_message: str, history: List[dict], context: str) -> List[dict]:
+    def _build_messages(self, user_message: str, history: List[dict], context: str, preferred_language: Optional[str] = None) -> List[dict]:
         
         "Build the list of chat messages to send to the LLM: a limited window of recent conversation history, plus the current user message."
 
@@ -296,8 +281,10 @@ class BaseAgent:
             messages.append({"role": turn["role"], "content": turn["content"]})
 
         # Add the current message with an explicit language reminder appended,
-        # so the LLM sees the language instruction right next to the actual text
-        lang = self._detect_language(user_message)
+        # so the LLM sees the language instruction right next to the actual text.
+        # preferred_language (the UI's language selector) takes priority over
+        # auto-detecting from the message text, same as in respond() above.
+        lang = preferred_language or detect_language(user_message)
 
         messages.append({"role": "user", "content": f"{user_message}\n\n[SYSTEM NOTE: Respond in {lang} only]"})
 
