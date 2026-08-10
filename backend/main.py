@@ -122,9 +122,9 @@ app.add_middleware(
         
         "http://127.0.0.1:5173",
         
-        "https://techmart-backend-jl0y.onrender.com",
+        "https://techmartai-backend.onrender.com",
         
-        "https://techmart-ai-support.vercel.app"
+        "https://techmartai-one.vercel.app"
         
     ],
     
