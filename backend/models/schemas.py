@@ -209,6 +209,36 @@ class BugReportOut(BaseModel):
         from_attributes = True
 
 
+class ScheduledReportRequest(BaseModel):
+
+    "Payload sent to create a recurring analytics email report."
+
+    email: Optional[str] = Field(None, description = "Defaults to the account's own email if not given")
+
+    frequency: str = Field(..., pattern = "^(daily|weekly|monthly)$")
+
+
+class ScheduledReportOut(BaseModel):
+
+    "A scheduled report, as returned to the user."
+
+    id: str
+
+    email: str
+
+    frequency: str
+
+    is_active: bool
+
+    last_sent_at: Optional[datetime] = None
+
+    created_at: datetime
+
+    class Config:
+
+        from_attributes = True
+
+
 class TokenResponse(BaseModel):
     
     "Returned after a successful login/registration — contains the JWT token."
@@ -469,7 +499,7 @@ class AnalyticsResponse(BaseModel):
     # "not enough data yet".
     resolution_rate: Optional[float] = None
 
-    # 24 entries, one per hour (0-23, server/UTC time), each the count
+    # 24 entries, one per hour (0-23, IST/UTC+5:30), each the count
     # of user messages sent during that hour across the selected range —
     # powers a "busiest hours" chart.
     busiest_hours: List[dict]

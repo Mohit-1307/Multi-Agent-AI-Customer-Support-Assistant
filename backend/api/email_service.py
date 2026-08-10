@@ -259,6 +259,47 @@ TechMart Electronics Support Team"""
     return send_email(to_email, subject, text_body, _wrap_html("Reset your TechMart password", body_html))
 
 
+def send_analytics_report_email(to_email: str, frequency: str, period_label: str, stats: dict) -> bool:
+
+    """
+    Emails a summary analytics report. stats is the same shape the
+    /analytics endpoint returns (as a plain dict): total_conversations,
+    total_messages, average_rating, avg_response_time_ms, resolution_rate.
+    """
+
+    subject = f"Your {frequency} TechMart analytics report — {period_label}"
+
+    resolution_display = f"{stats.get('resolution_rate')}%" if stats.get("resolution_rate") is not None else "N/A"
+
+    rating_display = f"{stats.get('average_rating'):.1f}" if stats.get("average_rating") else "N/A"
+
+    text_body = f"""Your {frequency} analytics summary for {period_label}:
+
+Total Conversations: {stats.get('total_conversations', 0)}
+Total Messages: {stats.get('total_messages', 0)}
+Average Rating: {rating_display}
+Avg Response Time: {round(stats.get('avg_response_time_ms', 0))}ms
+Resolution Rate: {resolution_display}
+
+View the full dashboard in the app for detailed breakdowns.
+
+TechMart Electronics Support Team"""
+
+    body_html = f"""
+<p style="margin:0 0 20px; font-size:14px; color:{BRAND_MUTED}; line-height:1.6;">Here's your {frequency} analytics summary for <strong style="color:{BRAND_DARK};">{period_label}</strong>.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{BRAND_BG}; border-radius:12px; padding:16px 20px; margin-bottom:20px;">
+{_detail_row("Total Conversations", str(stats.get("total_conversations", 0)))}
+{_detail_row("Total Messages", str(stats.get("total_messages", 0)))}
+{_detail_row("Average Rating", rating_display)}
+{_detail_row("Avg Response Time", f"{round(stats.get('avg_response_time_ms', 0))}ms")}
+{_detail_row("Resolution Rate", resolution_display)}
+</table>
+<p style="margin:0; font-size:13px; color:{BRAND_MUTED}; line-height:1.6;">Open the app and go to Analytics for the full breakdown by agent, intent, and sentiment.</p>
+"""
+
+    return send_email(to_email, subject, text_body, _wrap_html(f"Your {frequency} analytics report", body_html))
+
+
 def send_escalation_emails(customer_name, customer_email, session_id, session_title = "Support Query"):
 
     reference = f"ESC-{session_id[:8].upper()}"

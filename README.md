@@ -15,7 +15,7 @@ A FastAPI + Next.js customer support platform that routes customer messages to s
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](#license)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
-**[Live Demo →](https://techmart-ai-support.vercel.app/)**
+**[Live Demo →](https://techmartai-one.vercel.app/)**
 
 </div>
 
@@ -67,7 +67,7 @@ Every agent answers using context retrieved from a local **FAISS** vector index 
 
 ## Live Demo
 
-The frontend is deployed at **[techmart-ai-support.vercel.app](https://techmart-ai-support.vercel.app/)**, backed by the FastAPI service on Render.
+The frontend is deployed at **[techmartai-one.vercel.app](https://techmartai-one.vercel.app/)**, backed by the FastAPI service on Render.
 
 ---
 
@@ -199,7 +199,7 @@ sequenceDiagram
 | Messaging | Twilio (`twilio` SDK) | WhatsApp notifications |
 | Language Detection | `langdetect`, Unicode range heuristics | Multi-language response matching |
 | Deployment (backend) | Render (`render.yaml`), Uvicorn | Backend hosting |
-| Deployment (frontend) | Vercel (Next.js) | Frontend hosting — [live demo](https://techmart-ai-support.vercel.app/) |
+| Deployment (frontend) | Vercel (Next.js) | Frontend hosting — [live demo](https://techmartai-one.vercel.app/) |
 
 ---
 
@@ -704,7 +704,7 @@ console.log(chat.response);
 
 ## Deployment
 
-**Live app:** [https://techmart-ai-support.vercel.app/](https://techmart-ai-support.vercel.app/)
+**Live app:** [https://techmartai-one.vercel.app/](https://techmartai-one.vercel.app/)
 
 ### Backend — Render
 
@@ -719,7 +719,7 @@ Set the marked `sync: false` environment variables (`DATABASE_URL`, `SECRET_KEY`
 
 ### Frontend — Vercel
 
-The Next.js frontend (`frontend/`) is deployed on Vercel at [techmart-ai-support.vercel.app](https://techmart-ai-support.vercel.app/), pointing `NEXT_PUBLIC_API_URL` at the Render backend's `/api` base URL. `backend/main.py`'s CORS configuration allowlists this Vercel origin alongside the Render backend URL.
+The Next.js frontend (`frontend/`) is deployed on Vercel at [techmartai-one.vercel.app](https://techmartai-one.vercel.app/), pointing `NEXT_PUBLIC_API_URL` at the Render backend's `/api` base URL. `backend/main.py`'s CORS configuration allowlists this Vercel origin alongside the Render backend URL.
 
 Alternatively, `backend/main.py` will serve a static Next.js export from `frontend/out/` if that directory exists (`app.mount("/", StaticFiles(...))`), allowing a single-service deployment.
 
@@ -836,7 +836,7 @@ Yes. `backend/main.py` mounts a static file server at `/` if `frontend/out/` exi
 
 Built with FastAPI, Next.js, FAISS, and Sentence-Transformers.
 
-**[Live Demo](https://techmart-ai-support.vercel.app/)**
+**[Live Demo](https://techmartai-one.vercel.app/)**
 
 </div>
 

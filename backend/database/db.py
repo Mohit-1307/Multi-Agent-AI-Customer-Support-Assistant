@@ -225,6 +225,31 @@ class SupportTicket(Base):
     updated_at = Column(DateTime, default = datetime.utcnow)
 
 
+class ScheduledReport(Base):
+
+    "A recurring analytics report a user has set up to be emailed to them."
+
+    __tablename__ = "scheduled_reports"
+
+    id = Column(String, primary_key = True, default = lambda: str(uuid.uuid4()))
+
+    user_id = Column(String, ForeignKey("users.id"), nullable = False)
+
+    # Where the report gets sent — defaults to the user's account email
+    # at creation time, but can be a different address
+    email = Column(String, nullable = False)
+
+    # "daily" | "weekly" | "monthly"
+    frequency = Column(String, nullable = False)
+
+    is_active = Column(Boolean, default = True)
+
+    # Set after each send so the scheduler knows what's already been sent
+    last_sent_at = Column(DateTime, nullable = True)
+
+    created_at = Column(DateTime, default = datetime.utcnow)
+
+
 class BugReport(Base):
 
     "A bug report submitted by a user from the Get Help menu."

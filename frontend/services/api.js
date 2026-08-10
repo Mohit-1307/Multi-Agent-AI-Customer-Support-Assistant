@@ -203,6 +203,23 @@ export const analyticsAPI = {
 };
 
 // ------------------------------------------------------------------
+// Scheduled Reports API
+// ------------------------------------------------------------------
+export const scheduledReportsAPI = {
+
+  async list() {return apiFetch("/scheduled-reports")},
+
+  async create(frequency, email = null) {
+
+    return apiFetch("/scheduled-reports", { method: "POST", body: JSON.stringify({ frequency, email }) });
+
+  },
+
+  async remove(reportId) {return apiFetch(`/scheduled-reports/${reportId}`, { method: "DELETE" })},
+
+};
+
+// ------------------------------------------------------------------
 // Documentation API
 // ------------------------------------------------------------------
 export const docsAPI = {
@@ -250,4 +267,4 @@ export const adminAPI = {
 // ------------------------------------------------------------------
 export const systemAPI = {async health() {return apiFetch("/health")}};
 
-export default {authAPI, sessionsAPI, chatAPI, translateAPI, feedbackAPI, analyticsAPI, docsAPI, bugReportAPI, adminAPI, systemAPI};
+export default {authAPI, sessionsAPI, chatAPI, translateAPI, feedbackAPI, analyticsAPI, scheduledReportsAPI, docsAPI, bugReportAPI, adminAPI, systemAPI};

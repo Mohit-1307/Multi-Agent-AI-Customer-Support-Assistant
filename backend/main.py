@@ -75,8 +75,15 @@ async def lifespan(app: FastAPI):
         logger.warning("No saved FAISS index found. Will build on first request.")
 
     logger.info("Startup complete. Embedding loads on first request.")
-    
+
+    # Start the background job that emails due scheduled analytics reports
+    from .scheduler import start_scheduler, stop_scheduler
+
+    start_scheduler()
+
     yield
+
+    stop_scheduler()
 
 
 # ------------------------------------------------------------------
@@ -108,25 +115,30 @@ app = FastAPI(
 # -----------------------------------------------------------------------------------
 # CORS — allow the frontend (running on a different port/domain) to call this API
 # -----------------------------------------------------------------------------------
+_allowed_origins = [
+
+    "http://localhost:3000",  # Next.js dev server
+
+    "http://localhost:5173",  # Vite dev server
+
+    "https://techmartai-backend.onrender.com",
+        
+    "https://techmartai-one.vercel.app"
+
+]
+
+# Also allow whatever FRONTEND_URL is configured to (the deployed Vercel
+# domain, set via the FRONTEND_URL env var) — avoids needing to hardcode
+# and redeploy this file every time the frontend's URL changes.
+if settings.FRONTEND_URL and settings.FRONTEND_URL not in _allowed_origins:
+
+    _allowed_origins.append(settings.FRONTEND_URL)
+
 app.add_middleware(
     
     CORSMiddleware,
     
-    allow_origins = [
-        
-        "http://localhost:3000",  # Next.js dev server
-        
-        "http://localhost:5173",  # Vite dev server
-        
-        "http://127.0.0.1:3000",
-        
-        "http://127.0.0.1:5173",
-        
-        "https://techmartai-backend.onrender.com",
-        
-        "https://techmartai-one.vercel.app"
-        
-    ],
+    allow_origins = _allowed_origins,
     
     allow_credentials = True,
     

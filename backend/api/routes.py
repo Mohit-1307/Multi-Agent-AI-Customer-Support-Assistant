@@ -47,9 +47,9 @@ from ..api.auth import (
 
 )
 from ..config import settings
-from ..database.db import (BugReport, ChatSession, Feedback, KnowledgeBaseDoc, Message, OTPCode, PasswordResetToken, SupportTicket, User, get_db)
+from ..database.db import (BugReport, ChatSession, Feedback, KnowledgeBaseDoc, Message, OTPCode, PasswordResetToken, ScheduledReport, SupportTicket, User, get_db)
 from ..models.schemas import (AnalyticsResponse, AgentStat, BugReportOut, BugReportRequest, ChatRequest, ChatResponse, DocContentOut, DocOut, EmailVerifiedResponse, FeedbackRequest, FeedbackOut, ForgotPasswordRequest, GenericMessageResponse,
-                                GoogleAuthRequest, IntentStat, KBDocOut, KBRebuildResponse, LoginRequest, MessageOut, OTPSentResponse, RegisterRequest, ResetPasswordRequest, SendOTPRequest,
+                                GoogleAuthRequest, IntentStat, KBDocOut, KBRebuildResponse, LoginRequest, MessageOut, OTPSentResponse, RegisterRequest, ResetPasswordRequest, ScheduledReportOut, ScheduledReportRequest, SendOTPRequest,
                                 SentimentStat, SessionDetailOut, SessionOut, SuccessResponse, SummaryResponse, TokenResponse, TranslateRequest, TranslateResponse, UpdatePhoneRequest, UserOut, VerifyOTPRequest)
 
 from ..rag.retriever import get_retriever
@@ -65,6 +65,8 @@ from .email_service import (
     send_otp_email,
 
     send_password_reset_email,
+
+    send_analytics_report_email,
 
     send_email,
 
@@ -810,6 +812,77 @@ async def list_my_bug_reports(current_user: User = Depends(get_current_user), db
         .all()
 
     )
+
+
+# ------------------------------------------------------------------
+#  SCHEDULED ANALYTICS REPORTS
+# ------------------------------------------------------------------
+@router.post("/scheduled-reports", response_model = ScheduledReportOut, tags = ["Analytics"])
+async def create_scheduled_report(payload: ScheduledReportRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+
+    "Set up a recurring analytics email report (daily, weekly, or monthly)."
+
+    report = ScheduledReport(
+
+        user_id = current_user.id,
+
+        email = payload.email or current_user.email,
+
+        frequency = payload.frequency,
+
+    )
+
+    db.add(report)
+
+    db.commit()
+
+    db.refresh(report)
+
+    return report
+
+
+@router.get("/scheduled-reports", response_model = List[ScheduledReportOut], tags = ["Analytics"])
+async def list_scheduled_reports(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+
+    "List the current user's scheduled analytics reports."
+
+    return (
+
+        db.query(ScheduledReport)
+
+        .filter(ScheduledReport.user_id == current_user.id)
+
+        .order_by(ScheduledReport.created_at.desc())
+
+        .all()
+
+    )
+
+
+@router.delete("/scheduled-reports/{report_id}", response_model = SuccessResponse, tags = ["Analytics"])
+async def delete_scheduled_report(report_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+
+    "Cancel a scheduled analytics report."
+
+    report = (
+
+        db.query(ScheduledReport)
+
+        .filter(ScheduledReport.id == report_id, ScheduledReport.user_id == current_user.id)
+
+        .first()
+
+    )
+
+    if not report:
+
+        raise HTTPException(status_code = 404, detail = "Scheduled report not found.")
+
+    db.delete(report)
+
+    db.commit()
+
+    return SuccessResponse(success = True, message = "Scheduled report cancelled.")
 
 
 # ------------------------------------------------------------------

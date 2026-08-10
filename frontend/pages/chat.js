@@ -10,7 +10,7 @@ import { useRouter } from "next/router";
 
 import Head from "next/head";
 
-import { chatAPI, sessionsAPI, feedbackAPI, authAPI, analyticsAPI, translateAPI, bugReportAPI } from "../services/api";
+import { chatAPI, sessionsAPI, feedbackAPI, authAPI, analyticsAPI, translateAPI, bugReportAPI, scheduledReportsAPI } from "../services/api";
 
 import { DialogProvider, useDialog } from "../components/DialogProvider";
 
@@ -850,6 +850,255 @@ function BugReportModal({ onClose }) {
           </form>
 
         )}
+
+      </div>
+
+    </div>
+
+  );
+
+}
+
+function ScheduleReportModal({ onClose }) {
+
+  const [reports, setReports] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+
+  const [frequency, setFrequency] = useState("weekly");
+
+  const [email, setEmail] = useState("");
+
+  const [creating, setCreating] = useState(false);
+
+  const [error, setError] = useState("");
+
+  const loadReports = () => {
+
+    setLoading(true);
+
+    scheduledReportsAPI
+
+      .list()
+
+      .then(setReports)
+
+      .catch((err) => setError(err.message || "Failed to load scheduled reports."))
+
+      .finally(() => setLoading(false));
+
+  };
+
+  useEffect(() => {
+
+    loadReports();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleCreate = async (e) => {
+
+    e.preventDefault();
+
+    setError("");
+
+    setCreating(true);
+
+    try {
+
+      await scheduledReportsAPI.create(frequency, email.trim() || null);
+
+      setEmail("");
+
+      loadReports();
+
+    } catch (err) {
+
+      setError(err.message || "Failed to schedule report.");
+
+    } finally {
+
+      setCreating(false);
+
+    }
+
+  };
+
+  const handleDelete = async (reportId) => {
+
+    try {
+
+      await scheduledReportsAPI.remove(reportId);
+
+      setReports((prev) => prev.filter((r) => r.id !== reportId));
+
+    } catch (err) {
+
+      setError(err.message || "Failed to cancel report.");
+
+    }
+
+  };
+
+  return (
+
+    <div className = "fixed inset-0 bg-[var(--techmart-gray-900)]/40 flex items-center justify-center z-[100] fade-in" onClick = {onClose}>
+
+      <div className = "card p-6 w-full max-w-md mx-4" onClick = {(e) => e.stopPropagation()}>
+
+        <h3 className = "text-lg font-semibold text-[var(--tm-text-strong)] mb-1">Scheduled Reports</h3>
+
+        <p className = "text-sm text-[var(--tm-text-muted)] mb-4">Get a recurring analytics summary emailed to you automatically.</p>
+
+        {loading ? (
+
+          <p className = "text-sm text-[var(--tm-text-muted)] py-2">Loading...</p>
+
+        ) : reports.length > 0 ? (
+
+          <div className = "space-y-2 mb-4">
+
+            {reports.map((r) => (
+
+              <div
+
+                key = {r.id}
+
+                className = "flex items-center justify-between px-3 py-2.5 rounded-xl"
+
+                style = {{ background: "var(--techmart-gray-100)" }}
+
+              >
+
+                <div>
+
+                  <div className = "text-sm font-medium text-[var(--tm-text-strong)] capitalize">{r.frequency}</div>
+
+                  <div className = "text-xs text-[var(--tm-text-muted)]">{r.email}</div>
+
+                </div>
+
+                <button
+
+                  type = "button"
+
+                  onClick = {() => handleDelete(r.id)}
+
+                  className = "icon-btn icon-btn-danger"
+
+                  title = "Cancel this report"
+
+                >
+
+                  <svg width = "14" height = "14" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "2" strokeLinecap = "round" strokeLinejoin = "round">
+
+                    <path d = "M5 7h14l-1 13.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 20.5Z" />
+
+                    <path d = "M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+
+                    <line x1 = "3" y1 = "7" x2 = "21" y2 = "7" />
+
+                  </svg>
+
+                </button>
+
+              </div>
+
+            ))}
+
+          </div>
+
+        ) : (
+
+          <p className = "text-sm text-[var(--tm-text-faint)] mb-4">No scheduled reports yet.</p>
+
+        )}
+
+        <form onSubmit = {handleCreate} className = "space-y-3 pt-3 border-t border-[var(--tm-border-light)]">
+
+          <div>
+
+            <label className = "block text-sm font-medium text-[var(--tm-text-slate)] mb-1.5">Frequency</label>
+
+            <select
+
+              value = {frequency}
+
+              onChange = {(e) => setFrequency(e.target.value)}
+
+              className = "auth-input"
+
+            >
+
+              <option value = "daily">Daily</option>
+
+              <option value = "weekly">Weekly</option>
+
+              <option value = "monthly">Monthly</option>
+
+            </select>
+
+          </div>
+
+          <div>
+
+            <label className = "block text-sm font-medium text-[var(--tm-text-slate)] mb-1.5">
+
+              Email <span className = "text-[var(--tm-text-faint)] font-normal">(optional — defaults to your account email)</span>
+
+            </label>
+
+            <input
+
+              type = "email"
+
+              value = {email}
+
+              onChange = {(e) => setEmail(e.target.value)}
+
+              placeholder = "you@example.com"
+
+              className = "auth-input"
+
+            />
+
+          </div>
+
+          {error && (
+
+            <div className = "bg-[var(--tm-danger)]/10 border border-[var(--tm-danger)]/30 rounded-xl px-4 py-3 text-[var(--tm-danger)] text-sm fade-in">
+
+              ⚠️ {error}
+
+            </div>
+
+          )}
+
+          <div className = "flex gap-2 justify-end pt-1">
+
+            <button
+
+              type = "button"
+
+              onClick = {onClose}
+
+              className = "px-4 py-2 rounded-xl text-sm font-medium text-[var(--tm-text-muted)] border border-[var(--tm-border-light)] hover:bg-[var(--techmart-gray-100)] hover:text-[var(--tm-text-strong)] transition-colors"
+
+            >
+
+              Close
+
+            </button>
+
+            <button type = "submit" disabled = {creating} className = "btn-primary px-4 py-2 text-sm">
+
+              {creating ? "Scheduling..." : "Schedule"}
+
+            </button>
+
+          </div>
+
+        </form>
 
       </div>
 
@@ -2808,6 +3057,8 @@ function AnalyticsPanel({ onClose }) {
 
   const [showCustomPicker, setShowCustomPicker] = useState(false);
 
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+
   const fetchAnalytics = () => {
 
     setLoading(true);
@@ -3716,11 +3967,191 @@ function AnalyticsPanel({ onClose }) {
 
             </button>
 
+            <button
+
+              className = "btn-primary text-sm px-4 py-2 flex items-center gap-2"
+
+              onClick = {async () => {
+
+                if (!data) return;
+
+                const { jsPDF } = await import("jspdf");
+
+                const doc = new jsPDF();
+
+                const pageWidth = doc.internal.pageSize.getWidth();
+
+                let y = 20;
+
+                // Header — brand color bar + title, matching the app's
+                // blue/dark palette used everywhere else (buttons, emails)
+                doc.setFillColor(15, 21, 51); // --tm-text-strong / brand dark
+
+                doc.rect(0, 0, pageWidth, 32, "F");
+
+                doc.setTextColor(255, 255, 255);
+
+                doc.setFontSize(16);
+
+                doc.setFont(undefined, "bold");
+
+                doc.text("TechMart AI Support — Analytics Report", 14, 20);
+
+                doc.setFontSize(9);
+
+                doc.setFont(undefined, "normal");
+
+                doc.text(`Generated ${new Date().toLocaleDateString()} · ${RANGE_LABELS[rangePreset]}`, 14, 27);
+
+                y = 44;
+
+                doc.setTextColor(15, 21, 51);
+
+                doc.setFontSize(12);
+
+                doc.setFont(undefined, "bold");
+
+                doc.text("Summary", 14, y);
+
+                y += 8;
+
+                doc.setFontSize(10);
+
+                doc.setFont(undefined, "normal");
+
+                const summaryRows = [
+
+                  ["Total Conversations", String(data.total_conversations)],
+
+                  ["Total Messages", String(data.total_messages)],
+
+                  ["Average Rating", data.average_rating ? data.average_rating.toFixed(2) : "N/A"],
+
+                  ["Avg Response Time", `${Math.round(data.avg_response_time_ms)}ms`],
+
+                  ["Resolution Rate", data.resolution_rate !== null && data.resolution_rate !== undefined ? `${data.resolution_rate}%` : "N/A"],
+
+                ];
+
+                for (const [label, value] of summaryRows) {
+
+                  doc.setFont(undefined, "normal");
+
+                  doc.text(label, 14, y);
+
+                  doc.setFont(undefined, "bold");
+
+                  doc.text(value, 90, y);
+
+                  y += 7;
+
+                }
+
+                y += 6;
+
+                const drawTable = (title, headers, rows) => {
+
+                  if (rows.length === 0) return;
+
+                  doc.setFontSize(12);
+
+                  doc.setFont(undefined, "bold");
+
+                  doc.setTextColor(15, 21, 51);
+
+                  doc.text(title, 14, y);
+
+                  y += 8;
+
+                  doc.setFontSize(9);
+
+                  doc.setFont(undefined, "bold");
+
+                  doc.setTextColor(90, 96, 112);
+
+                  headers.forEach((h, i) => doc.text(h, 14 + i * 60, y));
+
+                  y += 6;
+
+                  doc.setFont(undefined, "normal");
+
+                  doc.setTextColor(15, 21, 51);
+
+                  for (const row of rows) {
+
+                    if (y > 275) {
+
+                      doc.addPage();
+
+                      y = 20;
+
+                    }
+
+                    row.forEach((cell, i) => doc.text(String(cell), 14 + i * 60, y));
+
+                    y += 6;
+
+                  }
+
+                  y += 8;
+
+                };
+
+                drawTable("Agent Usage", ["Agent", "Count", "Percentage"], data.agent_distribution.map((a) => [a.agent, a.count, `${a.percentage}%`]));
+
+                drawTable("Sentiment Distribution", ["Sentiment", "Count"], data.sentiment_distribution.map((s) => [s.sentiment, s.count]));
+
+                drawTable("Top Intents", ["Intent", "Count"], data.intent_distribution.map((i) => [i.intent, i.count]));
+
+                doc.save(`techmart-analytics-${new Date().toISOString().slice(0, 10)}.pdf`);
+
+              }}
+
+            >
+
+              <svg width = "15" height = "15" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
+
+                <path d = "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+
+                <polyline points = "14 2 14 8 20 8" />
+
+              </svg>
+
+              Export PDF
+
+            </button>
+
+            <button
+
+              className = "px-4 py-2 rounded-xl text-sm font-medium text-[var(--tm-text-muted)] border border-[var(--tm-border-light)] hover:bg-[var(--techmart-gray-100)] hover:text-[var(--tm-text-strong)] transition-colors flex items-center gap-2"
+
+              onClick = {() => setShowScheduleModal(true)}
+
+            >
+
+              <svg width = "15" height = "15" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.75" strokeLinecap = "round" strokeLinejoin = "round">
+
+                <rect x = "3" y = "4" width = "18" height = "18" rx = "2" />
+
+                <line x1 = "16" y1 = "2" x2 = "16" y2 = "6" />
+
+                <line x1 = "8" y1 = "2" x2 = "8" y2 = "6" />
+
+                <line x1 = "3" y1 = "10" x2 = "21" y2 = "10" />
+
+              </svg>
+
+              Schedule Report
+
+            </button>
+
             <button className = "btn-primary text-sm px-4 py-2" onClick = {onClose}>
 
               ❮ {t("backToChat")}
 
             </button>
+
+            {showScheduleModal && <ScheduleReportModal onClose = {() => setShowScheduleModal(false)} />}
 
           </div>
 
