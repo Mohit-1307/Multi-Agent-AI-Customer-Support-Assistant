@@ -120,8 +120,6 @@ _allowed_origins = [
     "http://localhost:3000",  # Next.js dev server
 
     "http://localhost:5173",  # Vite dev server
-
-    "https://techmart-ai-backend-bevi.onrender.com/api",
         
     "https://techmart-ai-support.vercel.app"
 
