@@ -121,9 +121,9 @@ _allowed_origins = [
 
     "http://localhost:5173",  # Vite dev server
 
-    "https://techmartai-backend.onrender.com",
+    "https://techmart-ai-backend-bevi.onrender.com/api",
         
-    "https://techmartai-one.vercel.app"
+    "https://techmart-ai-support.vercel.app"
 
 ]
 
