@@ -152,6 +152,19 @@ app.add_middleware(
 app.include_router(router, prefix="/api")
 
 
+# ------------------------------------------------------------------
+# Lightweight root health-check — lets uptime pingers (e.g. UptimeRobot)
+# hit "/" with a fast, cheap response instead of a real API route, to
+# keep the Render free-tier instance from spinning down on inactivity.
+# ------------------------------------------------------------------
+@app.get("/")
+
+async def root_health_check():
+
+    return {"status": "ok", "service": settings.APP_NAME}
+
+
+
 # ---------------------------------------------------------------------
 # Optionally serve the built frontend as static files, if present
 # (useful for a single-server deployment instead of separate hosting)
@@ -172,4 +185,4 @@ if __name__ == "__main__":
 
     import uvicorn
 
-    uvicorn.run("backend.main:app", host = "0.0.0.0", port = 8000, reload = True)
+    uvicorn.run("backend.main:app", host="0.0.0.0", port = 8000, reload = True)
