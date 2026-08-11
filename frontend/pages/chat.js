@@ -4123,7 +4123,7 @@ function AnalyticsPanel({ onClose }) {
 
             <button
 
-              className = "px-4 py-2 rounded-xl text-sm font-medium text-[var(--tm-text-muted)] border border-[var(--tm-border-light)] hover:bg-[var(--techmart-gray-100)] hover:text-[var(--tm-text-strong)] transition-colors flex items-center gap-2"
+              className = "btn-primary text-sm px-4 py-2 flex items-center gap-2"
 
               onClick = {() => setShowScheduleModal(true)}
 
@@ -4509,6 +4509,12 @@ function ChatPageInner() {
 
   const [isListening, setIsListening] = useState(false);
 
+  // Holds the active SpeechRecognition instance so startVoice() can call
+  // .stop() on it when the mic button is clicked again to stop listening —
+  // without this, clicking to "stop" only updated UI state while the
+  // browser's mic kept listening in the background.
+  const recognitionRef = useRef(null);
+
   const [attachedFiles, setAttachedFiles] = useState([]);
 
   const fileInputRef = useRef(null);
@@ -4562,33 +4568,12 @@ function ChatPageInner() {
 
         } else if (file.type === "application/pdf") {
 
-          // For PDFs we need to read the raw file first, then try
-          // to pull the text out of it below.
-
-          fileContent = await new Promise((resolve) => {
-
-            const reader = new FileReader();
-
-            reader.onload = async (e) => {
-
-              try {
-
-                // Attempt to grab the actual text content from the PDF.
-                const text = e.target.result;
-
-                resolve(`[PDF: ${file.name} - ${(file.size / 1024).toFixed(1)}KB]\n${text.substring(0, 3000)}`);
-
-              } catch {
-
-                resolve(`[PDF file: ${file.name}, Size: ${(file.size / 1024).toFixed(1)}KB]`);
-
-              }
-
-            };
-
-            reader.readAsText(file);
-
-          });
+          // No PDF text-extraction library is available client-side here,
+          // so we can't pull real text out of the file — reading a PDF's
+          // raw bytes as text (readAsText) just produces binary garbage,
+          // not actual content. Send the filename/size as a placeholder
+          // so the backend at least knows a PDF was attached.
+          fileContent = `[PDF file: ${file.name}, Size: ${(file.size / 1024).toFixed(1)}KB]`;
 
         } else {
 
@@ -4672,6 +4657,10 @@ function ChatPageInner() {
 
     if (isListening) {
 
+      // Actually stop the browser's mic, not just the UI state — otherwise
+      // recognition keeps running silently after the button appears "off".
+      recognitionRef.current?.stop();
+
       setIsListening(false);
 
       return;
@@ -4683,6 +4672,8 @@ function ChatPageInner() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
       const recognition = new SpeechRecognition();
+
+      recognitionRef.current = recognition;
 
       recognition.lang = "en-US";
 
@@ -4728,6 +4719,8 @@ function ChatPageInner() {
 
         setIsListening(false);
 
+        recognitionRef.current = null;
+
       };
 
       recognition.start();
@@ -4735,6 +4728,8 @@ function ChatPageInner() {
     } catch (err) {
 
       setIsListening(false);
+
+      recognitionRef.current = null;
 
       alertDialog({ title: "Voice error", icon: "⚠️", message: err.message });
 
@@ -5076,7 +5071,7 @@ function ChatPageInner() {
       
     }
 
-  }, [input, currentSessionId, isTyping]);
+  }, [input, currentSessionId, isTyping, attachedFiles, language]);
 
   const handleKeyDown = (e) => {
 

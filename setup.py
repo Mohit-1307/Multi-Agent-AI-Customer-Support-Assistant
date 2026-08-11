@@ -447,8 +447,6 @@ def main():
 
     print("3. Open browser → http://localhost:3000")
 
-    print("4. Login → admin@gmail.com / admin123")
-
     print("5. API docs → http://localhost:8000/docs")
 
     print("=" * 60)

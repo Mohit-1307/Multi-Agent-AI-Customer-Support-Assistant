@@ -200,6 +200,6 @@ export const COUNTRY_CODES = [
   { name: "Vietnam", iso: "VN", dial: "+84", flag: "🇻🇳" },
   { name: "Yemen", iso: "YE", dial: "+967", flag: "🇾🇪" },
   { name: "Zambia", iso: "ZM", dial: "+260", flag: "🇿🇲" },
-  { name: "Zimbabwe", iso: "ZW", dial: "+263", flag: "🇿🇼" },
+  { name: "Zimbabwe", iso: "ZW", dial: "+263", flag: "🇿🇼" }
 
 ];

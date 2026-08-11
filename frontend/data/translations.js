@@ -17,7 +17,7 @@ export const LANGUAGES = [
   { code: "ja", label: "日本語", flag: "🇯🇵" },
   { code: "zh", label: "中文", flag: "🇨🇳" },
   { code: "ru", label: "Русский", flag: "🇷🇺" },
-  { code: "ko", label: "한국어", flag: "🇰🇷" },
+  { code: "ko", label: "한국어", flag: "🇰🇷" }
 
 ];
 
@@ -38,7 +38,7 @@ export const LANGUAGE_NAMES = {
   "ja": "Japanese",
   "zh": "Chinese",
   "ru": "Russian",
-  "ko": "Korean",
+  "ko": "Korean"
 
 };
 
@@ -110,7 +110,7 @@ const en_US = {
   suggestionUltraBook: "Tell me about the UltraBook Pro 15",
   suggestionCancelSubscription: "I want to cancel my subscription",
   suggestionTrackOrder: "Track my order",
-  suggestionCarePricing: "TechMart Care pricing",
+  suggestionCarePricing: "TechMart Care pricing"
 
 };
 
@@ -182,7 +182,7 @@ const hi = {
   suggestionUltraBook: "मुझे UltraBook Pro 15 के बारे में बताएं",
   suggestionCancelSubscription: "मैं अपनी सदस्यता रद्द करना चाहता हूँ",
   suggestionTrackOrder: "मेरा ऑर्डर ट्रैक करें",
-  suggestionCarePricing: "TechMart Care की कीमत",
+  suggestionCarePricing: "TechMart Care की कीमत"
 
 };
 
@@ -254,7 +254,7 @@ const es = {
   suggestionUltraBook: "Cuéntame sobre el UltraBook Pro 15",
   suggestionCancelSubscription: "Quiero cancelar mi suscripción",
   suggestionTrackOrder: "Rastrear mi pedido",
-  suggestionCarePricing: "Precios de TechMart Care",
+  suggestionCarePricing: "Precios de TechMart Care"
 
 };
 
@@ -326,7 +326,7 @@ const fr = {
   suggestionUltraBook: "Parlez-moi de l'UltraBook Pro 15",
   suggestionCancelSubscription: "Je veux annuler mon abonnement",
   suggestionTrackOrder: "Suivre ma commande",
-  suggestionCarePricing: "Tarifs TechMart Care",
+  suggestionCarePricing: "Tarifs TechMart Care"
 
 };
 
@@ -398,7 +398,7 @@ const de = {
   suggestionUltraBook: "Erzählen Sie mir mehr über das UltraBook Pro 15",
   suggestionCancelSubscription: "Ich möchte mein Abonnement kündigen",
   suggestionTrackOrder: "Meine Bestellung verfolgen",
-  suggestionCarePricing: "TechMart Care Preise",
+  suggestionCarePricing: "TechMart Care Preise"
 
 };
 
@@ -470,7 +470,7 @@ const ja = {
   suggestionUltraBook: "UltraBook Pro 15について教えてください",
   suggestionCancelSubscription: "サブスクリプションを解約したいです",
   suggestionTrackOrder: "注文を追跡する",
-  suggestionCarePricing: "TechMart Careの料金",
+  suggestionCarePricing: "TechMart Careの料金"
 
 };
 
@@ -542,7 +542,7 @@ const zh = {
   suggestionUltraBook: "介绍一下UltraBook Pro 15",
   suggestionCancelSubscription: "我想取消我的订阅",
   suggestionTrackOrder: "追踪我的订单",
-  suggestionCarePricing: "TechMart Care定价",
+  suggestionCarePricing: "TechMart Care定价"
 
 };
 
@@ -614,7 +614,7 @@ const ru = {
   suggestionUltraBook: "Расскажите об UltraBook Pro 15",
   suggestionCancelSubscription: "Я хочу отменить подписку",
   suggestionTrackOrder: "Отследить мой заказ",
-  suggestionCarePricing: "Цены на TechMart Care",
+  suggestionCarePricing: "Цены на TechMart Care"
 
 };
 
@@ -686,7 +686,7 @@ const ko = {
   suggestionUltraBook: "UltraBook Pro 15에 대해 알려주세요",
   suggestionCancelSubscription: "구독을 취소하고 싶습니다",
   suggestionTrackOrder: "주문 추적",
-  suggestionCarePricing: "TechMart Care 가격",
+  suggestionCarePricing: "TechMart Care 가격"
 
 };
 
@@ -703,6 +703,6 @@ export const TRANSLATIONS = {
   "ja": ja,
   "zh": zh,
   "ru": ru,
-  "ko": ko,
+  "ko": ko
 
 };

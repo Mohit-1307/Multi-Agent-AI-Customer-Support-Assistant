@@ -12,6 +12,10 @@ __pycache__/
 # FAISS / Vector DB
 backend/vectorstore/
 
+# SQLite database
+backend/*.db
+backend/*.sqlite3
+
 # Node
 node_modules/
 frontend/node_modules/

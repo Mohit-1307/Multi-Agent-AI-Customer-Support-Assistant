@@ -252,7 +252,13 @@ class BaseAgent:
 
             return "", [], False
 
-        results: List[RetrievalResult] = self._retriever.retrieve(query, top_k = top_k, source_filter = None)  # each agent can override this in a subclass
+        # Prefer this agent's own relevant_sources as the filter, so e.g. the
+        # billing agent searches pricing/refund_policy/faq chunks first instead
+        # of the whole knowledge base. An empty list (the BaseAgent default)
+        # means "no filter — search everything".
+        source_filter = self.relevant_sources or None
+
+        results: List[RetrievalResult] = self._retriever.retrieve(query, top_k = top_k, source_filter = source_filter)
 
         # No matching chunks found
         if not results:

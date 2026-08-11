@@ -882,7 +882,7 @@ async def delete_scheduled_report(report_id: str, current_user: User = Depends(g
 
     db.commit()
 
-    return SuccessResponse(success = True, message = "Scheduled report cancelled.")
+    return SuccessResponse(message = "Scheduled report cancelled.")
 
 
 # ------------------------------------------------------------------
@@ -1963,15 +1963,15 @@ async def escalate_to_human(session_id: str, current_user: User = Depends(get_cu
 
         content = (
 
-            f"I understand you'd like to speak with a human agent."
+            f"I understand you'd like to speak with a human agent. "
 
-            f"Your case has been escalated (Reference: {reference})."
+            f"Your case has been escalated (Reference: {reference}). "
 
-            f"A TechMart support specialist will contact you at"
+            f"A TechMart support specialist will contact you at "
 
-            f"{current_user.email} within 2 business hours."
+            f"{current_user.email} within 2 business hours. "
 
-            f"You can also call us directly at 1-800-TECHMART."
+            f"You can also call us directly at 1-800-TECHMART. "
 
             f"Thank you for your patience."
 
@@ -2319,6 +2319,13 @@ async def delete_account(current_user: User = Depends(get_current_user), db: Ses
 
     # Delete any remaining tickets tied directly to the user
     db.query(SupportTicket).filter(SupportTicket.user_id == user_id).delete()
+
+    # Delete any scheduled reports and bug reports tied to the user
+    # (these also have a user_id foreign key, so leaving them would
+    # violate the FK constraint when the user row is deleted below)
+    db.query(ScheduledReport).filter(ScheduledReport.user_id == user_id).delete()
+
+    db.query(BugReport).filter(BugReport.user_id == user_id).delete()
 
     # Finally, delete the user account itself
     db.query(User).filter(User.id == user_id).delete()

@@ -460,12 +460,12 @@ TechMart Electronics Support Team"""
     )
 
     body_html = f"""
-<p style="margin:0 0 4px; font-size:15px; color:{BRAND_DARK};">Dear {customer_name},</p>
-<p style="margin:0 0 20px; font-size:14px; color:{BRAND_MUTED}; line-height:1.6;">Thank you for taking the time to rate your experience.</p>
-<div style="text-align:center; margin-bottom:20px;">{stars_html}<br>
-<span style="font-size:13px; color:{BRAND_MUTED};">{rating} out of 5</span>
+<p style = "margin:0 0 4px; font-size:15px; color:{BRAND_DARK};">Dear {customer_name},</p>
+<p style = "margin:0 0 20px; font-size:14px; color:{BRAND_MUTED}; line-height:1.6;">Thank you for taking the time to rate your experience.</p>
+<div style = "text-align:center; margin-bottom:20px;">{stars_html}<br>
+<span style = "font-size:13px; color:{BRAND_MUTED};">{rating} out of 5</span>
 </div>
-<p style="margin:0; font-size:14px; color:{BRAND_MUTED}; line-height:1.6; text-align:center;">{follow_up}</p>
+<p style = "margin:0; font-size:14px; color:{BRAND_MUTED}; line-height:1.6; text-align:center;">{follow_up}</p>
 """
 
     return send_email(

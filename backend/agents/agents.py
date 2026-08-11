@@ -205,7 +205,7 @@ class ComplaintAgent(BaseAgent):
 
             and provide a concrete resolution path — not just apologies.
 
-            "You have authority to escalate to senior management when warranted.
+            You have authority to escalate to senior management when warranted.
             """
 
         )

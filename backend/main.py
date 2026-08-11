@@ -95,7 +95,7 @@ app = FastAPI(
 
     description = (
         
-        """"
+        """
         Multi-Agent AI Customer Support System for TechMart Electronics.
         Powered by Retrieval-Augmented Generation (RAG) and specialized AI agents.
         """
