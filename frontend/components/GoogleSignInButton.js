@@ -11,6 +11,22 @@ export default function GoogleSignInButton({ onCredential, onError, text = "cont
 
   const buttonRef = useRef(null);
 
+  // Keep the latest callbacks in refs so the init effect below doesn't
+  // need onCredential/onError in its dependency array — those are often
+  // passed as new inline functions on every parent render, which would
+  // otherwise cause google.accounts.id.initialize() to be called repeatedly.
+  const onCredentialRef = useRef(onCredential);
+
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => {
+
+    onCredentialRef.current = onCredential;
+
+    onErrorRef.current = onError;
+
+  }, [onCredential, onError]);
+
   useEffect(() => {
 
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -49,11 +65,11 @@ export default function GoogleSignInButton({ onCredential, onError, text = "cont
 
           if (response && response.credential) {
 
-            onCredential(response.credential);
+            onCredentialRef.current?.(response.credential);
 
           } else {
 
-            onError?.(new Error("Google did not return a credential."));
+            onErrorRef.current?.(new Error("Google did not return a credential."));
 
           }
 
@@ -95,7 +111,7 @@ export default function GoogleSignInButton({ onCredential, onError, text = "cont
 
     };
 
-  }, [onCredential, onError, text]);
+  }, [text]);
 
   return <div ref = {buttonRef} style = {{ display: "flex", justifyContent: "center" }} />;
 
