@@ -120,7 +120,7 @@ _allowed_origins = [
     "http://localhost:3000",  # Next.js dev server
 
     "http://localhost:5173",  # Vite dev server
-        
+
     "https://techmart-ai-support.vercel.app"
 
 ]
@@ -172,4 +172,4 @@ if __name__ == "__main__":
 
     import uvicorn
 
-    uvicorn.run("backend.main:app", host="0.0.0.0", port = 8000, reload = True)
+    uvicorn.run("backend.main:app", host = "0.0.0.0", port = 8000, reload = True)

@@ -65,53 +65,19 @@ def step2_create_database():
         sys.exit(1)
 
 
-def step3_create_admin():
+def step3_create_database_done():
 
-    print("\n👤 Creating admin user...")
+    # Admin account creation removed — no default/pre-seeded user is created.
+    # Register a normal account through the app, then promote it to admin
+    # manually in the database if you need admin access:
+    #
+    #   from backend.database.db import SessionLocal, User
+    #   db = SessionLocal()
+    #   user = db.query(User).filter(User.email == "your-email@example.com").first()
+    #   user.is_admin = True
+    #   db.commit()
 
-    try:
-
-        from backend.database.db import SessionLocal, User
-
-        from backend.api.auth import hash_password
-
-        db = SessionLocal()
-
-        admin = db.query(User).filter(User.email == "admin@gmail.com").first()
-
-        if not admin:
-
-            admin = User(
-
-                name = "Admin",
-
-                email = "admin@gmail.com",
-
-                password_hash=hash_password("admin123"),
-
-                is_admin = True
-
-            )
-
-            db.add(admin)
-
-            db.commit()
-
-            print("✅ Admin user created")
-
-            print("Email: admin@gmail.com")
-
-            print("Password: admin123")
-
-        else:
-
-            print("✅ Admin user already exists")
-
-        db.close()
-
-    except Exception as e:
-
-        print(f"❌ User creation error: {e}")
+    pass
 
 
 def step4_build_index():
@@ -429,7 +395,7 @@ def main():
 
     step2_create_database()
 
-    step3_create_admin()
+    step3_create_database_done()
 
     step4_build_index()
 
@@ -446,6 +412,8 @@ def main():
     print("2. Open new terminal → cd frontend && npm install && npm run dev")
 
     print("3. Open browser → http://localhost:3000")
+
+    print("4. Sign up for an account in the app")
 
     print("5. API docs → http://localhost:8000/docs")
 
