@@ -12,7 +12,6 @@ A FastAPI + Next.js customer support platform that routes customer messages to s
 [![FAISS](https://img.shields.io/badge/FAISS-Vector%20Search-4B8BBE)](https://github.com/facebookresearch/faiss)
 [![Sentence Transformers](https://img.shields.io/badge/Sentence--Transformers-MiniLM--L6--v2-FFB000)](https://www.sbert.net/)
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-D71F00)](https://www.sqlalchemy.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](#license)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
 **[Live Demo →](https://techmart-ai-support.vercel.app)**
@@ -363,7 +362,7 @@ Expected response:
 | `DATABASE_URL` | DB connection string | No (defaults to local SQLite) | `postgresql://user:pass@host/db` |
 | `LLM_PROVIDER` | `groq` \| `openai` \| `ollama` \| unset (mock) | No | `groq` |
 | `GROQ_API_KEY` | Groq API key | If using Groq | `gsk_...` |
-| `GROQ_MODEL` | Groq model name | No (defaults `llama-3.1-8b-instant`) | `llama-3.1-8b-instant` |
+| `GROQ_MODEL` | Groq model name | No (defaults `gpt-oss-20b`) | `gpt-oss-20b` |
 | `OPENAI_API_KEY` | OpenAI API key | If using OpenAI | `sk-...` |
 | `OPENAI_MODEL` | OpenAI model name | No (defaults `gpt-3.5-turbo`) | `gpt-4o-mini` |
 | `OLLAMA_BASE_URL` | Local Ollama endpoint | If using Ollama | `http://localhost:11434/v1` |
