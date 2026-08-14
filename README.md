@@ -188,7 +188,7 @@ sequenceDiagram
 | Backend Framework | FastAPI 0.115, Uvicorn (standard) | Async REST API server |
 | Frontend Framework | Next.js 14 (Pages Router), React 18 | Chat UI, auth pages |
 | Styling | Tailwind CSS 3.4 | Frontend styling |
-| LLM Providers | Groq (`llama-3.1-8b-instant` default), OpenAI, Ollama | Response generation, via `AsyncOpenAI`-compatible client |
+| LLM Providers | Groq (`gpt-oss-20b` default), OpenAI, Ollama | Response generation, via `AsyncOpenAI`-compatible client |
 | Embeddings | `sentence-transformers` (`all-MiniLM-L6-v2`) | Text-to-vector embedding for RAG |
 | Vector Store | FAISS (`faiss-cpu`, `IndexFlatL2`) | Exact nearest-neighbor semantic search |
 | Database ORM | SQLAlchemy 2.0 | Users, sessions, messages, tickets, feedback |
