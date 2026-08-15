@@ -65,22 +65,7 @@ def step2_create_database():
         sys.exit(1)
 
 
-def step3_create_database_done():
-
-    # Admin account creation removed — no default/pre-seeded user is created.
-    # Register a normal account through the app, then promote it to admin
-    # manually in the database if you need admin access:
-    #
-    #   from backend.database.db import SessionLocal, User
-    #   db = SessionLocal()
-    #   user = db.query(User).filter(User.email == "your-email@example.com").first()
-    #   user.is_admin = True
-    #   db.commit()
-
-    pass
-
-
-def step4_build_index():
+def step3_build_index():
 
     print("\n🔍 Building knowledge base index...")
 

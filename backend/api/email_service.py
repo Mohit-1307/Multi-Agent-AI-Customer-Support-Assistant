@@ -18,7 +18,9 @@ BRAND_DANGER = "#d1372a"
 
 def is_email_configured() -> bool:
 
-    return bool(settings.SMTP_USER and settings.SMTP_PASSWORD)
+    "True if either SendGrid or SMTP credentials are set — either is enough to send email."
+
+    return bool(settings.SENDGRID_API_KEY) or bool(settings.SMTP_USER and settings.SMTP_PASSWORD)
 
 
 def _wrap_html(preheader: str, body_html: str) -> str:
@@ -100,6 +102,7 @@ def send_email(to_email: str, subject: str, body: str, html_body: str = None) ->
     try:
 
         import urllib.request
+        import urllib.error
         import json as _json
         import os
 
@@ -116,11 +119,25 @@ def send_email(to_email: str, subject: str, body: str, html_body: str = None) ->
 
             content.append({"type": "text/html", "value": html_body})
 
+        # The "from" address for SendGrid must be a verified sender in your
+        # SendGrid account. Use SENDGRID_FROM_EMAIL if set, otherwise fall
+        # back to SUPPORT_EMAIL, then SMTP_USER — NOT just SMTP_USER alone,
+        # since a SendGrid-only setup (no SMTP configured) would otherwise
+        # send an empty "from" address and SendGrid would silently reject
+        # the whole request.
+        from_email = settings.SENDGRID_FROM_EMAIL or settings.SUPPORT_EMAIL or settings.SMTP_USER
+
+        if not from_email:
+
+            logger.error("SendGrid send failed: no from-address configured (set SENDGRID_FROM_EMAIL).")
+
+            return False
+
         payload = _json.dumps({
             
             "personalizations": [{"to": [{"email": to_email}]}],
             
-            "from": {"email": settings.SMTP_USER, "name": "TechMart Support"},
+            "from": {"email": from_email, "name": "TechMart Support"},
             
             "subject": subject,
             
@@ -145,11 +162,26 @@ def send_email(to_email: str, subject: str, body: str, html_body: str = None) ->
 
         )
 
-        with urllib.request.urlopen(req, timeout = 10) as resp:
+        try:
 
-            logger.info(f"Email sent via SendGrid to {to_email}")
+            with urllib.request.urlopen(req, timeout = 10) as resp:
 
-            return True
+                logger.info(f"Email sent via SendGrid to {to_email} (status {resp.status})")
+
+                return True
+
+        except urllib.error.HTTPError as e:
+
+            # SendGrid returns a JSON error body explaining exactly what's
+            # wrong (bad/unverified from-address, invalid API key, etc).
+            # Surfacing that body is the difference between "email send
+            # failed" and actually knowing why — without this, every
+            # SendGrid rejection just looks like a generic HTTP error.
+            error_body = e.read().decode(errors = "replace")
+
+            logger.error(f"SendGrid rejected the email (HTTP {e.code}): {error_body}")
+
+            return False
 
     except Exception as e:
 

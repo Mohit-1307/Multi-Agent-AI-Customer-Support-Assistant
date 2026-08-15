@@ -162,20 +162,22 @@ class Settings:
     CHUNK_OVERLAP: int = int(os.getenv("CHUNK_OVERLAP", "80"))
 
     # How many top-matching chunks to retrieve per query
-    TOP_K_RESULTS: int = int(os.getenv("TOP_K_RESULTS", "4"))
+    TOP_K_RESULTS: int = int(os.getenv("TOP_K_RESULTS", "1"))
 
 
     # ------------------------------------------------------------------
     # LLM generation parameters
     # ------------------------------------------------------------------
-    MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "600"))
+    MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "150"))
 
     # Higher = more random/creative, lower = more focused/deterministic
-    TEMPERATURE: float = float(os.getenv("TEMPERATURE", "0.7"))
+    TEMPERATURE: float = float(os.getenv("TEMPERATURE", "0.4"))
 
 
     # ------------------------------------------------------------------
-    # Email (SMTP) settings, used for sending support notifications
+    # Email settings, used for sending support notifications.
+    # Two delivery methods are supported: SendGrid (preferred, if
+    # SENDGRID_API_KEY is set) or plain SMTP as a fallback.
     # ------------------------------------------------------------------
     SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
 
@@ -186,6 +188,15 @@ class Settings:
     SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
 
     SUPPORT_EMAIL: str = os.getenv("SUPPORT_EMAIL", "support@techmartelectronics.com")
+
+    # SendGrid API key — when set, send_email() uses the SendGrid HTTP API
+    # instead of SMTP. Get one from https://app.sendgrid.com/settings/api_keys
+    SENDGRID_API_KEY: str = os.getenv("SENDGRID_API_KEY", "")
+
+    # The "From" address used for SendGrid emails. Must be a sender identity
+    # verified in your SendGrid account. Falls back to SUPPORT_EMAIL/SMTP_USER
+    # if not explicitly set.
+    SENDGRID_FROM_EMAIL: str = os.getenv("SENDGRID_FROM_EMAIL", "")
 
 
     # ------------------------------------------------------------------
@@ -240,6 +251,19 @@ class Settings:
                 "base_url": self.OPENAI_BASE_URL,
                 
                 "model": self.OPENAI_MODEL
+                
+            }
+
+        elif self.LLM_PROVIDER == "anthropic":
+
+            # Anthropic Claude: uses its own SDK/endpoint, not OpenAI-compatible
+            return {
+                
+                "api_key": self.ANTHROPIC_API_KEY,
+                
+                "base_url": "",
+                
+                "model": self.ANTHROPIC_MODEL
                 
             }
 

@@ -134,9 +134,13 @@ class LLMClient:
     def _get_client(self):
         
         """
-        Lazily initialise the OpenAI SDK client, only when it's first needed.
+        Lazily initialise the SDK client, only when it's first needed.
         Returns None if no API key is configured or the SDK isn't installed —
         callers treat None as "fall back to template responses".
+
+        Anthropic uses its own SDK (a different request/response shape from
+        the OpenAI-compatible providers), so it's handled separately from
+        Groq/OpenAI/Ollama, which all share the OpenAI-compatible client.
         """
 
         # Already created on a previous call — reuse it
@@ -150,6 +154,31 @@ class LLMClient:
         if not config.get("api_key") or config["api_key"] == "mock":
 
             return None
+
+        if self._provider == "anthropic":
+
+            try:
+
+                from anthropic import AsyncAnthropic
+
+                self._client = AsyncAnthropic(api_key = config["api_key"])
+
+                logger.info(
+
+                    f"LLM client initialized: provider = {self._provider},"
+
+                    f"model = {config['model']}"
+
+                )
+
+            except ImportError:
+
+                # anthropic package isn't installed — fall back gracefully instead of crashing
+                logger.warning("anthropic package not installed. Using fallback mode.")
+
+                return None
+
+            return self._client
 
         try:
 
@@ -217,15 +246,6 @@ class LLMClient:
 
             return self._fallback_response(last_user_msg)
 
-        full_messages = []
-
-        # System prompt goes first, if one was provided
-        if system:
-
-            full_messages.append({"role": "system", "content": system})
-
-        full_messages.extend(messages)
-
         # ----------------------------------------------------------------------------
         # Retry up to 3 times on failure, with increasing wait time between attempts
         # ----------------------------------------------------------------------------
@@ -234,6 +254,63 @@ class LLMClient:
         for attempt in range(3):
 
             try:
+
+                if self._provider == "anthropic":
+
+                    # Anthropic's SDK takes `system` as its own top-level
+                    # parameter rather than a "system" role inside `messages`,
+                    # and its response shape is different from the OpenAI-style
+                    # `choices[0].message.content` used by the other providers.
+                    response = await client.messages.create(
+
+                        model = self._config["model"],
+
+                        system = system or "",
+
+                        messages = messages,
+
+                        max_tokens = max_tokens or settings.MAX_TOKENS,
+
+                        temperature = temperature if temperature is not None else settings.TEMPERATURE,
+
+                        timeout = 30.0
+
+                    )
+
+                    return "".join(
+
+                        block.text for block in response.content if getattr(block, "type", None) == "text"
+
+                    ).strip()
+
+                full_messages = []
+
+                # System prompt goes first, if one was provided
+                if system:
+
+                    full_messages.append({"role": "system", "content": system})
+
+                full_messages.extend(messages)
+
+                extra_params = {}
+
+                # Groq's GPT-OSS models (gpt-oss-20b / gpt-oss-120b) are
+                # reasoning models — by default they think through the
+                # answer internally and can leak that "thinking" text into
+                # the visible reply, or into JSON responses that need to be
+                # machine-parsed (see router.py's intent classifier). Two
+                # provider-specific params fix this: include_reasoning=False
+                # hides that internal reasoning from the output entirely,
+                # and reasoning_effort="low" keeps replies fast for a
+                # customer-support chat that doesn't need deep reasoning.
+                # (Note: gpt-oss models specifically use include_reasoning,
+                # NOT the more common reasoning_format param — Groq rejects
+                # reasoning_format for this model family.)
+                if self._provider == "groq" and "gpt-oss" in self._config["model"]:
+
+                    extra_params["include_reasoning"] = False
+
+                    extra_params["reasoning_effort"] = "low"
 
                 response = await client.chat.completions.create(
 
@@ -245,7 +322,9 @@ class LLMClient:
 
                     temperature = temperature or settings.TEMPERATURE,
 
-                    timeout = 30.0
+                    timeout = 30.0,
+
+                    **extra_params
 
                 )
 

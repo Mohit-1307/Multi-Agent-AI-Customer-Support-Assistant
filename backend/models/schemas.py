@@ -6,9 +6,39 @@ and receives. FastAPI uses them to validate incoming requests and
 to automatically generate the /docs API documentation.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+
+class UTCTimestampMixin(BaseModel):
+
+    """
+    Mixin for any response schema that includes datetime fields sourced
+    from the database. SQLAlchemy's DateTime columns (populated via
+    datetime.utcnow()) are stored as naive datetimes — they carry no
+    timezone marker. When Pydantic serializes a naive datetime to JSON,
+    the resulting string (e.g. "2026-08-15T06:08:00") has no "Z" or
+    "+00:00" suffix, so browsers interpret it as LOCAL time rather than
+    UTC — silently shifting every displayed timestamp by the visitor's
+    UTC offset (e.g. showing 11:38 AM as 6:08 AM for an IST user).
+
+    This validator runs after each datetime field is parsed and, if it's
+    naive, marks it as UTC (matching what utcnow() actually produced)
+    without changing the wall-clock value. Once tagged, Pydantic's JSON
+    encoder appends the "+00:00" suffix, and every client-side
+    `new Date(...)` call converts it to the visitor's local time correctly.
+    """
+
+    @field_validator("*", mode = "after")
+    @classmethod
+    def _mark_naive_datetimes_as_utc(cls, value):
+
+        if isinstance(value, datetime) and value.tzinfo is None:
+
+            return value.replace(tzinfo = timezone.utc)
+
+        return value
 
 # ------------------------------------------------------------------
 # Auth
@@ -186,7 +216,7 @@ class BugReportRequest(BaseModel):
     page_url: Optional[str] = Field(None, max_length = 500, description = "The page the user was on when they hit the bug")
 
 
-class BugReportOut(BaseModel):
+class BugReportOut(UTCTimestampMixin):
 
     "A submitted bug report, as returned to the user or an admin."
 
@@ -218,7 +248,7 @@ class ScheduledReportRequest(BaseModel):
     frequency: str = Field(..., pattern = "^(daily|weekly|monthly)$")
 
 
-class ScheduledReportOut(BaseModel):
+class ScheduledReportOut(UTCTimestampMixin):
 
     "A scheduled report, as returned to the user."
 
@@ -250,7 +280,7 @@ class TokenResponse(BaseModel):
     user: "UserOut"
 
 
-class UserOut(BaseModel):
+class UserOut(UTCTimestampMixin):
     
     "Public-facing representation of a user (never includes the password hash)."
 
@@ -307,7 +337,7 @@ class AgentInfo(BaseModel):
     sentiment: str
 
 
-class ChatResponse(BaseModel):
+class ChatResponse(UTCTimestampMixin):
     
     "Returned after the assistant generates a reply to a chat message."
 
@@ -335,7 +365,7 @@ class ChatResponse(BaseModel):
 # ------------------------------------------------------------------
 # Session / History
 # ------------------------------------------------------------------
-class MessageOut(BaseModel):
+class MessageOut(UTCTimestampMixin):
     
     "A single message as returned to the frontend (part of session history)."
 
@@ -358,7 +388,7 @@ class MessageOut(BaseModel):
         from_attributes = True
 
 
-class SessionOut(BaseModel):
+class SessionOut(UTCTimestampMixin):
     
     "Summary view of a chat session, used in the sidebar session list."
 
@@ -379,7 +409,7 @@ class SessionOut(BaseModel):
         from_attributes = True
 
 
-class SessionDetailOut(BaseModel):
+class SessionDetailOut(UTCTimestampMixin):
     
     "Full view of a chat session, including all its messages."
 
@@ -423,7 +453,7 @@ class FeedbackRequest(BaseModel):
     comment: Optional[str] = Field(None, max_length = 500)
 
 
-class FeedbackOut(BaseModel):
+class FeedbackOut(UTCTimestampMixin):
     
     "Feedback record as returned to the frontend."
 
@@ -508,7 +538,7 @@ class AnalyticsResponse(BaseModel):
 # ------------------------------------------------------------------
 # Knowledge Base (admin)
 # ------------------------------------------------------------------
-class KBDocOut(BaseModel):
+class KBDocOut(UTCTimestampMixin):
     
     "A single knowledge-base document as tracked in the database."
 

@@ -938,16 +938,39 @@ class AgentRouter:
 
         raw = re.sub(r"\s*```$", "", raw)
 
+        raw = raw.strip()
+
         try:
 
             parsed = json.loads(raw)
 
         except json.JSONDecodeError:
 
-            # LLM didn't return valid JSON — log it and let the caller fall back to keywords
-            logger.warning(f"LLM returned invalid JSON: {raw[:100]}")
+            # Some models (especially reasoning-style ones like gpt-oss-20b/120b)
+            # wrap the JSON in extra commentary or "thinking" text instead of
+            # returning it as the entire response, even when explicitly told
+            # not to. As a second attempt, pull out the first {...} block
+            # from the raw text and try to parse just that.
+            match = re.search(r"\{.*\}", raw, re.DOTALL)
 
-            raise ValueError("Invalid JSON from LLM")
+            if match:
+
+                try:
+
+                    parsed = json.loads(match.group(0))
+
+                except json.JSONDecodeError:
+
+                    logger.warning(f"LLM returned invalid JSON even after extraction: {raw[:200]}")
+
+                    raise ValueError("Invalid JSON from LLM")
+
+            else:
+
+                # LLM didn't return valid JSON — log it and let the caller fall back to keywords
+                logger.warning(f"LLM returned invalid JSON: {raw[:200]}")
+
+                raise ValueError("Invalid JSON from LLM")
 
         # ------------------------------------------------------------------
         # Validate and normalize the LLM's response before trusting it
